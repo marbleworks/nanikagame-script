@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using UnityEngine;
 
 namespace RuntimeScripting
 {
@@ -43,6 +45,28 @@ namespace RuntimeScripting
                 nextTime = elapsed + (parsed.Interval > 0 ? parsed.Interval : EvaluateInterval());
             }
             return true;
+        }
+
+        /// <summary>
+        /// Coroutine execution handling intervals automatically.
+        /// </summary>
+        public IEnumerator ExecuteCoroutine()
+        {
+            elapsed = 0f;
+            nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
+            while (parsed.Period <= 0 || elapsed < parsed.Period)
+            {
+                yield return new WaitForSeconds(nextTime);
+                elapsed += nextTime;
+                if (parsed.Period > 0 && elapsed > parsed.Period)
+                    yield break;
+
+                if (string.IsNullOrEmpty(parsed.CanExecuteRaw) || ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
+                {
+                    controller.ExecuteActionImmediately(param);
+                }
+                nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
+            }
         }
 
         private float EvaluateInterval()
