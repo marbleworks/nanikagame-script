@@ -9,6 +9,14 @@ namespace RuntimeScripting
     {
         private readonly Dictionary<string, ParsedEvent> events = new Dictionary<string, ParsedEvent>();
         private readonly List<ScheduledAction> scheduled = new List<ScheduledAction>();
+        private readonly GameLogic gameLogic;
+
+        public RuntimeTextScriptController(GameLogic gameLogic = null)
+        {
+            this.gameLogic = gameLogic ?? new GameLogic();
+        }
+
+        internal GameLogic GameLogic => gameLogic;
 
         public void Load(string folder)
         {
@@ -30,7 +38,7 @@ namespace RuntimeScripting
 
             foreach (var pa in pe.Actions)
             {
-                if (!string.IsNullOrEmpty(pa.Condition) && !ConditionEvaluator.Evaluate(pa.Condition))
+                if (!string.IsNullOrEmpty(pa.Condition) && !ConditionEvaluator.Evaluate(pa.Condition, gameLogic))
                     continue;
 
                 var param = Convert(pa);
@@ -59,25 +67,25 @@ namespace RuntimeScripting
             switch (param.ActionType)
             {
                 case ActionType.Attack:
-                    GameLogic.Attack(param.IntValue);
+                    gameLogic.Attack(param.IntValue);
                     break;
                 case ActionType.AddPlayerEffect:
-                    GameLogic.AddPlayerEffect(param.Targets, param.StringValue, param.IntValue);
+                    gameLogic.AddPlayerEffect(param.Targets, param.StringValue, param.IntValue);
                     break;
                 case ActionType.AddPlayerEffectFor:
-                    GameLogic.AddPlayerEffectFor(param.Targets, param.StringValue, param.IntValue, param.ExtraValue);
+                    gameLogic.AddPlayerEffectFor(param.Targets, param.StringValue, param.IntValue, param.ExtraValue);
                     break;
                 case ActionType.RemoveRandomDebuffPlayerEffect:
-                    GameLogic.RemoveRandomDebuffPlayerEffect(param.Targets, param.IntValue);
+                    gameLogic.RemoveRandomDebuffPlayerEffect(param.Targets, param.IntValue);
                     break;
                 case ActionType.AddMaxHp:
-                    GameLogic.AddMaxHp(param.Targets, param.IntValue);
+                    gameLogic.AddMaxHp(param.Targets, param.IntValue);
                     break;
                 case ActionType.SetNanikaEffectFor:
-                    GameLogic.SetNanikaEffectFor(param.Targets, param.StringValue, param.IntValue);
+                    gameLogic.SetNanikaEffectFor(param.Targets, param.StringValue, param.IntValue);
                     break;
                 case ActionType.SpawnNanika:
-                    GameLogic.SpawnNanika(param.Targets, param.StringValue, param.IntValue);
+                    gameLogic.SpawnNanika(param.Targets, param.StringValue, param.IntValue);
                     break;
             }
         }

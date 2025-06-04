@@ -9,7 +9,7 @@ namespace RuntimeScripting
     /// </summary>
     public static class ConditionEvaluator
     {
-        public static bool Evaluate(string expression)
+        public static bool Evaluate(string expression, GameLogic gameLogic)
         {
             if (string.IsNullOrWhiteSpace(expression))
             {
@@ -19,7 +19,7 @@ namespace RuntimeScripting
             try
             {
                 var tokenizer = new Tokenizer(expression);
-                var parser = new Parser(tokenizer);
+                var parser = new Parser(tokenizer, gameLogic);
                 return parser.ParseExpression();
             }
             catch (Exception)
@@ -32,10 +32,12 @@ namespace RuntimeScripting
         {
             private readonly Tokenizer tokenizer;
             private Token current;
+            private readonly GameLogic gameLogic;
 
-            public Parser(Tokenizer tokenizer)
+            public Parser(Tokenizer tokenizer, GameLogic gameLogic)
             {
                 this.tokenizer = tokenizer;
+                this.gameLogic = gameLogic;
                 current = tokenizer.Next();
             }
 
@@ -127,7 +129,7 @@ namespace RuntimeScripting
                         }
                     }
                     Expect(TokenType.RParen);
-                    return GameLogic.EvaluateFunctionInt(func, args.ToArray());
+                    return gameLogic.EvaluateFunctionInt(func, args.ToArray());
                 }
 
                 throw new Exception("Unexpected token" + current.Type);

@@ -36,7 +36,7 @@ namespace RuntimeScripting
 
             if (elapsed >= nextTime)
             {
-                if (string.IsNullOrEmpty(parsed.CanExecuteRaw) || ConditionEvaluator.Evaluate(parsed.CanExecuteRaw))
+                if (string.IsNullOrEmpty(parsed.CanExecuteRaw) || ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
                 {
                     controller.ExecuteActionImmediately(param);
                 }
