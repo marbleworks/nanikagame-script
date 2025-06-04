@@ -14,7 +14,7 @@ namespace RuntimeScripting
         private static readonly Regex actionRegex = new Regex(@"(?<name>\w+)\((?<args>[^)]*)\)");
 
         /// <summary>
-        /// Loads all script files and returns a dictionary of ParsedEvents.
+        /// Loads all script files and returns a dictionary of <see cref="ParsedEvent"/> objects.
         /// </summary>
         public static Dictionary<string, ParsedEvent> LoadScripts(string folder)
         {
@@ -26,11 +26,28 @@ namespace RuntimeScripting
             return result;
         }
 
+        /// <summary>
+        /// Parses a single script text and returns its events.
+        /// </summary>
+        /// <param name="script">The script contents.</param>
+        public static Dictionary<string, ParsedEvent> ParseString(string script)
+        {
+            var result = new Dictionary<string, ParsedEvent>();
+            var lines = script.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            ParseLines(lines, result);
+            return result;
+        }
+
         private static void ParseFile(string path, Dictionary<string, ParsedEvent> events)
+        {
+            var lines = File.ReadAllLines(path);
+            ParseLines(lines, events);
+        }
+
+        private static void ParseLines(IEnumerable<string> lines, Dictionary<string, ParsedEvent> events)
         {
             string currentEvent = null;
             ParsedEvent parsedEvent = null;
-            var lines = File.ReadAllLines(path);
             foreach (var raw in lines)
             {
                 var line = raw.Trim();

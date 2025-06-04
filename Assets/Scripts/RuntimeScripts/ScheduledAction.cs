@@ -24,30 +24,6 @@ namespace RuntimeScripting
         }
 
         /// <summary>
-        /// Updates the internal timer and executes if interval elapsed.
-        /// </summary>
-        /// <param name="delta">Delta time in seconds.</param>
-        /// <returns>True if still active.</returns>
-        public bool Update(float delta)
-        {
-            elapsed += delta;
-            if (parsed.Period > 0 && elapsed > parsed.Period)
-            {
-                return false;
-            }
-
-            if (elapsed >= nextTime)
-            {
-                if (string.IsNullOrEmpty(parsed.CanExecuteRaw) || ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
-                {
-                    controller.ExecuteActionImmediately(param);
-                }
-                nextTime = elapsed + (parsed.Interval > 0 ? parsed.Interval : EvaluateInterval());
-            }
-            return true;
-        }
-
-        /// <summary>
         /// Coroutine execution handling intervals automatically.
         /// </summary>
         public IEnumerator ExecuteCoroutine()
