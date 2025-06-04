@@ -1,2 +1,0 @@
-[OnEvolutionSummoned]
-AddPlayerEffect(@l, strength, 1)

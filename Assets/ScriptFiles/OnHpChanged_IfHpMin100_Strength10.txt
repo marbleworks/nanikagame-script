@@ -1,2 +1,0 @@
-[OnHpChanged]
-HpMin() <= 100: AddPlayerEffect(@l, strength, 10)
