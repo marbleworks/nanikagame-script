@@ -1,0 +1,2 @@
+[OnSpawned]
+AddPlayerEffect(@l, spikes, 1) interval=3

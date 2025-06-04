@@ -5,7 +5,7 @@ using UnityEngine;
 namespace RuntimeScripting
 {
     /// <summary>
-    /// Loads script files and triggers events.
+    /// Loads script files from the Resources folder and triggers events.
     /// </summary>
     public class RuntimeTextScriptController : MonoBehaviour
     {
@@ -20,6 +20,10 @@ namespace RuntimeScripting
             GameLogic = gameLogic;
         }
 
+        /// <summary>
+        /// Loads all script files from a Resources folder.
+        /// </summary>
+        /// <param name="folder">Resources subfolder containing the scripts.</param>
         public void Load(string folder)
         {
             var loaded = TextScriptParser.LoadScripts(folder);
@@ -27,9 +31,9 @@ namespace RuntimeScripting
         }
 
         /// <summary>
-        /// Loads a single script file.
+        /// Loads a single script file from the Resources folder.
         /// </summary>
-        /// <param name="path">Path to the script file.</param>
+        /// <param name="path">Resource path of the script without extension.</param>
         public void LoadFile(string path)
         {
             var loaded = TextScriptParser.LoadFile(path);

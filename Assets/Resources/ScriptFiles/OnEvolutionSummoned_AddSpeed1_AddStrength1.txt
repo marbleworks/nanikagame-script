@@ -1,0 +1,3 @@
+[OnEvolutionSummoned]
+AddPlayerEffect(@l, speed, 1)
+AddPlayerEffect(@l, strength, 1)

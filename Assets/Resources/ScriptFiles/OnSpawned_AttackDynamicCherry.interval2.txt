@@ -1,0 +1,2 @@
+[OnSpawned]
+Attack(NanikaCount(#a[id=cherry])) interval=2
