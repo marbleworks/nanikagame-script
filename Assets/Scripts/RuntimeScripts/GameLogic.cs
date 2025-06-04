@@ -29,6 +29,25 @@ namespace RuntimeScripting
             }
         }
 
+        /// <summary>
+        /// Evaluates a function that returns a floating point value.
+        /// </summary>
+        /// <param name="func">Function name.</param>
+        /// <param name="args">Arguments passed from the script.</param>
+        /// <returns>Function result as float.</returns>
+        public float EvaluateFunctionFloat(string func, string[] args)
+        {
+            switch (func)
+            {
+                case "interval":
+                    if (args.Length > 0 && float.TryParse(args[0], out float v))
+                        return v;
+                    return 0f;
+                default:
+                    return EvaluateFunctionInt(func, args);
+            }
+        }
+
         // Action methods used by RuntimeTextScriptController
         public void Attack(int value)
         {
