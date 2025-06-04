@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace RuntimeScripting
 {
@@ -51,37 +52,37 @@ namespace RuntimeScripting
         // Action methods used by RuntimeTextScriptController
         public void Attack(int value)
         {
-            Console.WriteLine($"Attack {value}");
+            Debug.Log($"Attack {value}");
         }
 
         public void AddPlayerEffect(string targets, string effectId, int value)
         {
-            Console.WriteLine($"Add effect {effectId} {value} to {targets}");
+            Debug.Log($"Add effect {effectId} {value} to {targets}");
         }
 
         public void AddPlayerEffectFor(string targets, string effectId, int value, int duration)
         {
-            Console.WriteLine($"Add effect {effectId} {value} for {duration} to {targets}");
+            Debug.Log($"Add effect {effectId} {value} for {duration} to {targets}");
         }
 
         public void RemoveRandomDebuffPlayerEffect(string targets, int count)
         {
-            Console.WriteLine($"Remove {count} debuffs from {targets}");
+            Debug.Log($"Remove {count} debuffs from {targets}");
         }
 
         public void AddMaxHp(string targets, int value)
         {
-            Console.WriteLine($"Add max hp {value} to {targets}");
+            Debug.Log($"Add max hp {value} to {targets}");
         }
 
         public void SetNanikaEffectFor(string targets, string effectId, int value)
         {
-            Console.WriteLine($"Set nanika effect {effectId} {value} for {targets}");
+            Debug.Log($"Set nanika effect {effectId} {value} for {targets}");
         }
 
         public void SpawnNanika(string targets, string nanikaId, int spawnPosId)
         {
-            Console.WriteLine($"Spawn nanika {nanikaId} at {spawnPosId} for {targets}");
+            Debug.Log($"Spawn nanika {nanikaId} at {spawnPosId} for {targets}");
         }
     }
 }
