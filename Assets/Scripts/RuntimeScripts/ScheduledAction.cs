@@ -49,13 +49,19 @@ namespace RuntimeScripting
         {
             if (string.IsNullOrEmpty(parsed.IntervalFuncRaw))
                 return parsed.Interval;
-            // very simple pattern: interval(x)
+
             var s = parsed.IntervalFuncRaw.Trim();
-            if (s.StartsWith("interval(") && s.EndsWith(")"))
+            int open = s.IndexOf('(');
+            int close = s.LastIndexOf(')');
+            if (open > 0 && close > open)
             {
-                var inner = s.Substring(9, s.Length - 10);
-                if (float.TryParse(inner, out float val))
-                    return val;
+                var func = s.Substring(0, open);
+                var argsPart = s.Substring(open + 1, close - open - 1);
+                var args = string.IsNullOrWhiteSpace(argsPart) ?
+                    Array.Empty<string>() : argsPart.Split(',');
+                for (int i = 0; i < args.Length; i++)
+                    args[i] = args[i].Trim();
+                return controller.GameLogic.EvaluateFunctionFloat(func, args);
             }
             return parsed.Interval;
         }
