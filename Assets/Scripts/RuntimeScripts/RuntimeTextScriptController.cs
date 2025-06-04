@@ -1,19 +1,29 @@
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace RuntimeScripting
 {
     /// <summary>
     /// Loads script files and triggers events.
     /// </summary>
-    public class RuntimeTextScriptController
+    public class RuntimeTextScriptController : MonoBehaviour
     {
         private readonly Dictionary<string, ParsedEvent> events = new Dictionary<string, ParsedEvent>();
         private readonly List<ScheduledAction> scheduled = new List<ScheduledAction>();
-        private readonly GameLogic gameLogic;
+        private readonly List<Coroutine> running = new List<Coroutine>();
+        [SerializeField]
+        private GameLogic gameLogic;
 
         public RuntimeTextScriptController(GameLogic gameLogic = null)
         {
             this.gameLogic = gameLogic ?? new GameLogic();
+        }
+
+        private void Awake()
+        {
+            if (gameLogic == null)
+                gameLogic = new GameLogic();
         }
 
         internal GameLogic GameLogic => gameLogic;
@@ -44,7 +54,10 @@ namespace RuntimeScripting
                 var param = Convert(pa);
                 if (pa.Interval > 0 || !string.IsNullOrEmpty(pa.IntervalFuncRaw))
                 {
-                    scheduled.Add(new ScheduledAction(param, pa, this));
+                    var sa = new ScheduledAction(param, pa, this);
+                    scheduled.Add(sa);
+                    var co = StartCoroutine(RunScheduledAction(sa));
+                    running.Add(co);
                 }
                 else
                 {
@@ -60,6 +73,12 @@ namespace RuntimeScripting
                 if (!scheduled[i].Update(delta))
                     scheduled.RemoveAt(i);
             }
+        }
+
+        private IEnumerator RunScheduledAction(ScheduledAction sa)
+        {
+            yield return sa.ExecuteCoroutine();
+            scheduled.Remove(sa);
         }
 
         internal void ExecuteActionImmediately(ActionParameter param)
