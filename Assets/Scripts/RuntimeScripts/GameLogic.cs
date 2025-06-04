@@ -39,7 +39,7 @@ namespace RuntimeScripting
         {
             switch (func)
             {
-                case "interval":
+                case "Interval":
                     if (args.Length > 0 && float.TryParse(args[0], out float v))
                         return v;
                     return 0f;
