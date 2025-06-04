@@ -41,6 +41,23 @@ namespace RuntimeScripting
             }
         }
 
+        /// <summary>
+        /// Loads script events from a string.
+        /// </summary>
+        /// <param name="script">Script contents in the DSL format.</param>
+        public void LoadFromString(string script)
+        {
+            events.Clear();
+            var loaded = TextScriptParser.ParseString(script);
+            foreach (var kv in loaded)
+            {
+                if (!events.ContainsKey(kv.Key))
+                    events[kv.Key] = kv.Value;
+                else
+                    events[kv.Key].Actions.AddRange(kv.Value.Actions);
+            }
+        }
+
         public void Trigger(string eventName)
         {
             if (!events.TryGetValue(eventName, out var pe))
@@ -63,15 +80,6 @@ namespace RuntimeScripting
                 {
                     ExecuteActionImmediately(param);
                 }
-            }
-        }
-
-        public void Update(float delta)
-        {
-            for (int i = scheduled.Count - 1; i >= 0; i--)
-            {
-                if (!scheduled[i].Update(delta))
-                    scheduled.RemoveAt(i);
             }
         }
 
