@@ -30,15 +30,18 @@ namespace RuntimeScripting
 
         public void Load(string folder)
         {
-            events.Clear();
             var loaded = TextScriptParser.LoadScripts(folder);
-            foreach (var kv in loaded)
-            {
-                if (!events.ContainsKey(kv.Key))
-                    events[kv.Key] = kv.Value;
-                else
-                    events[kv.Key].Actions.AddRange(kv.Value.Actions);
-            }
+            MergeEvents(loaded);
+        }
+
+        /// <summary>
+        /// Loads a single script file.
+        /// </summary>
+        /// <param name="path">Path to the script file.</param>
+        public void LoadFile(string path)
+        {
+            var loaded = TextScriptParser.LoadFile(path);
+            MergeEvents(loaded);
         }
 
         /// <summary>
@@ -47,8 +50,13 @@ namespace RuntimeScripting
         /// <param name="script">Script contents in the DSL format.</param>
         public void LoadFromString(string script)
         {
-            events.Clear();
             var loaded = TextScriptParser.ParseString(script);
+            MergeEvents(loaded);
+        }
+
+        private void MergeEvents(Dictionary<string, ParsedEvent> loaded)
+        {
+            events.Clear();
             foreach (var kv in loaded)
             {
                 if (!events.ContainsKey(kv.Key))

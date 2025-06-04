@@ -27,6 +27,17 @@ namespace RuntimeScripting
         }
 
         /// <summary>
+        /// Loads a single script file and returns its events.
+        /// </summary>
+        /// <param name="path">Path to the script file.</param>
+        public static Dictionary<string, ParsedEvent> LoadFile(string path)
+        {
+            var result = new Dictionary<string, ParsedEvent>();
+            ParseFile(path, result);
+            return result;
+        }
+
+        /// <summary>
         /// Parses a single script text and returns its events.
         /// </summary>
         /// <param name="script">The script contents.</param>
