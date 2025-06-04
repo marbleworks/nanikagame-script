@@ -6,16 +6,16 @@ namespace RuntimeScripting
     /// Placeholder for game-specific logic. In a real project these methods
     /// would interact with the rest of the game systems.
     /// </summary>
-    public static class GameLogic
+    public class GameLogic
     {
-        public static int HpMin() => 100;
-        public static int ComboCount() => 0;
-        public static int Shield() => 0;
-        public static bool UseResource(string id, int value) => true;
-        public static int NanikaCount(string spec) => 0;
-        public static bool NotDebuffed(string target) => true;
+        public int HpMin() => 100;
+        public int ComboCount() => 0;
+        public int Shield() => 0;
+        public bool UseResource(string id, int value) => true;
+        public int NanikaCount(string spec) => 0;
+        public bool NotDebuffed(string target) => true;
 
-        public static int EvaluateFunctionInt(string func, string[] args)
+        public int EvaluateFunctionInt(string func, string[] args)
         {
             switch (func)
             {
@@ -30,37 +30,37 @@ namespace RuntimeScripting
         }
 
         // Action methods used by RuntimeTextScriptController
-        public static void Attack(int value)
+        public void Attack(int value)
         {
             Console.WriteLine($"Attack {value}");
         }
 
-        public static void AddPlayerEffect(string targets, string effectId, int value)
+        public void AddPlayerEffect(string targets, string effectId, int value)
         {
             Console.WriteLine($"Add effect {effectId} {value} to {targets}");
         }
 
-        public static void AddPlayerEffectFor(string targets, string effectId, int value, int duration)
+        public void AddPlayerEffectFor(string targets, string effectId, int value, int duration)
         {
             Console.WriteLine($"Add effect {effectId} {value} for {duration} to {targets}");
         }
 
-        public static void RemoveRandomDebuffPlayerEffect(string targets, int count)
+        public void RemoveRandomDebuffPlayerEffect(string targets, int count)
         {
             Console.WriteLine($"Remove {count} debuffs from {targets}");
         }
 
-        public static void AddMaxHp(string targets, int value)
+        public void AddMaxHp(string targets, int value)
         {
             Console.WriteLine($"Add max hp {value} to {targets}");
         }
 
-        public static void SetNanikaEffectFor(string targets, string effectId, int value)
+        public void SetNanikaEffectFor(string targets, string effectId, int value)
         {
             Console.WriteLine($"Set nanika effect {effectId} {value} for {targets}");
         }
 
-        public static void SpawnNanika(string targets, string nanikaId, int spawnPosId)
+        public void SpawnNanika(string targets, string nanikaId, int spawnPosId)
         {
             Console.WriteLine($"Spawn nanika {nanikaId} at {spawnPosId} for {targets}");
         }
