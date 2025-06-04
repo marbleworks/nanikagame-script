@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace RuntimeScripting
 {
     /// <summary>
-    /// Parses script files located under Assets/ScriptFiles.
+    /// Parses script files located under the Resources folder.
     /// </summary>
     public static class TextScriptParser
     {
@@ -19,9 +19,10 @@ namespace RuntimeScripting
         public static Dictionary<string, ParsedEvent> LoadScripts(string folder)
         {
             var result = new Dictionary<string, ParsedEvent>();
-            foreach (var file in Directory.GetFiles(folder, "*.txt"))
+            var assets = Resources.LoadAll<TextAsset>(folder);
+            foreach (var asset in assets)
             {
-                ParseFile(file, result);
+                ParseText(asset.text, result);
             }
             return result;
         }
@@ -51,7 +52,20 @@ namespace RuntimeScripting
 
         private static void ParseFile(string path, Dictionary<string, ParsedEvent> events)
         {
-            var lines = File.ReadAllLines(path);
+            if (path.EndsWith(".txt"))
+                path = path.Substring(0, path.Length - 4);
+            var asset = Resources.Load<TextAsset>(path);
+            if (asset == null)
+            {
+                Debug.LogWarning($"Script file not found: {path}");
+                return;
+            }
+            ParseText(asset.text, events);
+        }
+
+        private static void ParseText(string text, Dictionary<string, ParsedEvent> events)
+        {
+            var lines = text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             ParseLines(lines, events);
         }
 
