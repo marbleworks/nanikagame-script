@@ -1,0 +1,2 @@
+[OnCombo]
+ComboCount() >= 10: AddPlayerEffectFor(@l, invulnerability, 1, 30)

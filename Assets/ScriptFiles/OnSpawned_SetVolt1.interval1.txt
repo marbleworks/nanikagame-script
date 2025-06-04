@@ -1,0 +1,2 @@
+[OnSpawned]
+SetNanikaEffectFor(@l, volt, 1) interval=1
