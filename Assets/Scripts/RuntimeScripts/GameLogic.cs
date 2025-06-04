@@ -66,9 +66,32 @@ namespace RuntimeScripting
         }
 
         // Action methods used by RuntimeTextScriptController
-        public void Attack(int value)
+        public void Attack(string arg)
         {
+            int value = ParseIntArg(arg);
             Debug.Log($"Attack {value}");
+        }
+
+        private int ParseIntArg(string arg)
+        {
+            if (int.TryParse(arg, out var v))
+                return v;
+
+            int open = arg.IndexOf('(');
+            int close = arg.LastIndexOf(')');
+            if (open > 0 && close > open)
+            {
+                var func = arg.Substring(0, open);
+                var argsPart = arg.Substring(open + 1, close - open - 1);
+                var parts = string.IsNullOrWhiteSpace(argsPart)
+                    ? Array.Empty<string>()
+                    : argsPart.Split(',');
+                for (int i = 0; i < parts.Length; i++)
+                    parts[i] = parts[i].Trim();
+                return EvaluateFunctionInt(func, parts);
+            }
+
+            return 0;
         }
 
         public void AddPlayerEffect(string targets, string effectId, int value)

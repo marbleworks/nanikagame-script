@@ -98,7 +98,7 @@ namespace RuntimeScripting
             switch (param.ActionType)
             {
                 case ActionType.Attack:
-                    GameLogic.Attack(param.IntValue);
+                    GameLogic.Attack(param.StringValue);
                     break;
                 case ActionType.AddPlayerEffect:
                     GameLogic.AddPlayerEffect(param.Targets, param.StringValue, param.IntValue);
@@ -132,7 +132,7 @@ namespace RuntimeScripting
             {
                 case ActionType.Attack:
                     if (pa.Args.Count > 0)
-                        param.IntValue = ParseIntArg(pa.Args[0]);
+                        param.StringValue = pa.Args[0];
                     break;
                 case ActionType.AddPlayerEffect:
                     if (pa.Args.Count > 0)
