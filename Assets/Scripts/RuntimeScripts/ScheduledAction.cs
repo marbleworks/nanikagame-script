@@ -61,6 +61,8 @@ namespace RuntimeScripting
                     Array.Empty<string>() : argsPart.Split(',');
                 for (int i = 0; i < args.Length; i++)
                     args[i] = args[i].Trim();
+                if (Enum.TryParse(func, out FunctionFloat ff))
+                    return controller.GameLogic.EvaluateFunctionFloat(ff, args);
                 return controller.GameLogic.EvaluateFunctionFloat(func, args);
             }
             return parsed.Interval;

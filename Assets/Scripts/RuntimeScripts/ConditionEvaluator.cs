@@ -129,6 +129,8 @@ namespace RuntimeScripting
                         }
                     }
                     Expect(TokenType.RParen);
+                    if (Enum.TryParse(func, out FunctionInt f))
+                        return gameLogic.EvaluateFunctionInt(f, args.ToArray());
                     return gameLogic.EvaluateFunctionInt(func, args.ToArray());
                 }
 

@@ -16,18 +16,25 @@ namespace RuntimeScripting
         public int NanikaCount(string spec) => 0;
         public bool NotDebuffed(string target) => true;
 
-        public int EvaluateFunctionInt(string func, string[] args)
+        public int EvaluateFunctionInt(FunctionInt func, string[] args)
         {
             switch (func)
             {
-                case "HpMin": return HpMin();
-                case "ComboCount": return ComboCount();
-                case "Shield": return Shield();
-                case "NanikaCount": return NanikaCount(args.Length > 0 ? args[0] : string.Empty);
-                case "UseResource": return UseResource(args[0], int.Parse(args[1])) ? 1 : 0;
-                case "NotDebuffed": return NotDebuffed(args[0]) ? 1 : 0;
+                case FunctionInt.HpMin: return HpMin();
+                case FunctionInt.ComboCount: return ComboCount();
+                case FunctionInt.Shield: return Shield();
+                case FunctionInt.NanikaCount: return NanikaCount(args.Length > 0 ? args[0] : string.Empty);
+                case FunctionInt.UseResource: return UseResource(args[0], int.Parse(args[1])) ? 1 : 0;
+                case FunctionInt.NotDebuffed: return NotDebuffed(args[0]) ? 1 : 0;
                 default: return 0;
             }
+        }
+
+        public int EvaluateFunctionInt(string func, string[] args)
+        {
+            if (Enum.TryParse(func, out FunctionInt f))
+                return EvaluateFunctionInt(f, args);
+            return 0;
         }
 
         /// <summary>
@@ -36,17 +43,26 @@ namespace RuntimeScripting
         /// <param name="func">Function name.</param>
         /// <param name="args">Arguments passed from the script.</param>
         /// <returns>Function result as float.</returns>
-        public float EvaluateFunctionFloat(string func, string[] args)
+        public float EvaluateFunctionFloat(FunctionFloat func, string[] args)
         {
             switch (func)
             {
-                case "Interval":
+                case FunctionFloat.Interval:
                     if (args.Length > 0 && float.TryParse(args[0], out float v))
                         return v;
                     return 0f;
                 default:
-                    return EvaluateFunctionInt(func, args);
+                    return 0f;
             }
+        }
+
+        public float EvaluateFunctionFloat(string func, string[] args)
+        {
+            if (Enum.TryParse(func, out FunctionFloat f))
+                return EvaluateFunctionFloat(f, args);
+            if (Enum.TryParse(func, out FunctionInt fi))
+                return EvaluateFunctionInt(fi, args);
+            return 0f;
         }
 
         // Action methods used by RuntimeTextScriptController
