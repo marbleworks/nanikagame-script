@@ -127,19 +127,94 @@ namespace RuntimeScripting
             {
                 ActionType = pa.ActionType
             };
-            if (pa.Args.Count > 0)
-                param.Targets = pa.Args[0];
-            if (pa.Args.Count > 1)
-                param.StringValue = pa.Args[1];
-            if (pa.Args.Count > 2 && int.TryParse(pa.Args[2], out int iv))
-                param.IntValue = iv;
-            if (pa.Args.Count > 3 && int.TryParse(pa.Args[3], out int ex))
-                param.ExtraValue = ex;
-            if (pa.Interval > 0)
-                param.IntValue = (int)pa.Interval;
-            if (pa.Period > 0)
-                param.ExtraValue = (int)pa.Period;
+
+            switch (pa.ActionType)
+            {
+                case ActionType.Attack:
+                    if (pa.Args.Count > 0)
+                        param.IntValue = ParseIntArg(pa.Args[0]);
+                    break;
+                case ActionType.AddPlayerEffect:
+                    if (pa.Args.Count > 0)
+                        param.Targets = pa.Args[0];
+                    if (pa.Args.Count > 1)
+                        param.StringValue = pa.Args[1];
+                    if (pa.Args.Count > 2)
+                        param.IntValue = ParseIntArg(pa.Args[2]);
+                    break;
+                case ActionType.AddPlayerEffectFor:
+                    if (pa.Args.Count > 0)
+                        param.Targets = pa.Args[0];
+                    if (pa.Args.Count > 1)
+                        param.StringValue = pa.Args[1];
+                    if (pa.Args.Count > 2)
+                        param.IntValue = ParseIntArg(pa.Args[2]);
+                    if (pa.Args.Count > 3)
+                        param.ExtraValue = ParseIntArg(pa.Args[3]);
+                    break;
+                case ActionType.RemoveRandomDebuffPlayerEffect:
+                    if (pa.Args.Count > 0)
+                        param.Targets = pa.Args[0];
+                    if (pa.Args.Count > 1)
+                        param.IntValue = ParseIntArg(pa.Args[1]);
+                    break;
+                case ActionType.AddMaxHp:
+                    if (pa.Args.Count > 0)
+                        param.Targets = pa.Args[0];
+                    if (pa.Args.Count > 1)
+                        param.IntValue = ParseIntArg(pa.Args[1]);
+                    break;
+                case ActionType.SetNanikaEffectFor:
+                    if (pa.Args.Count > 0)
+                        param.Targets = pa.Args[0];
+                    if (pa.Args.Count > 1)
+                        param.StringValue = pa.Args[1];
+                    if (pa.Args.Count > 2)
+                        param.IntValue = ParseIntArg(pa.Args[2]);
+                    break;
+                case ActionType.SpawnNanika:
+                    if (pa.Args.Count > 0)
+                        param.Targets = pa.Args[0];
+                    if (pa.Args.Count > 1)
+                        param.StringValue = pa.Args[1];
+                    if (pa.Args.Count > 2)
+                        param.IntValue = ParseIntArg(pa.Args[2]);
+                    break;
+                default:
+                    if (pa.Args.Count > 0)
+                        param.Targets = pa.Args[0];
+                    if (pa.Args.Count > 1)
+                        param.StringValue = pa.Args[1];
+                    if (pa.Args.Count > 2)
+                        param.IntValue = ParseIntArg(pa.Args[2]);
+                    if (pa.Args.Count > 3)
+                        param.ExtraValue = ParseIntArg(pa.Args[3]);
+                    break;
+            }
+
             return param;
+        }
+
+        private int ParseIntArg(string arg)
+        {
+            if (int.TryParse(arg, out var value))
+                return value;
+
+            int open = arg.IndexOf('(');
+            int close = arg.LastIndexOf(')');
+            if (open > 0 && close > open)
+            {
+                var func = arg.Substring(0, open);
+                var argsPart = arg.Substring(open + 1, close - open - 1);
+                var parts = string.IsNullOrWhiteSpace(argsPart)
+                    ? Array.Empty<string>()
+                    : argsPart.Split(',');
+                for (int i = 0; i < parts.Length; i++)
+                    parts[i] = parts[i].Trim();
+                return GameLogic.EvaluateFunctionInt(func, parts);
+            }
+
+            return 0;
         }
     }
 }
