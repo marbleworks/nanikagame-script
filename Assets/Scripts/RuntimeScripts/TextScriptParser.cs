@@ -95,11 +95,15 @@ namespace RuntimeScripting
             };
             pa.Args.AddRange(args);
             if (options.TryGetValue("interval", out var iv))
-                float.TryParse(iv, out pa.Interval);
+                if (float.TryParse(iv, out var intervalValue))
+                    pa.Interval = intervalValue;
             if (options.TryGetValue("period", out var pd))
-                float.TryParse(pd, out pa.Period);
-            options.TryGetValue("canExecute", out pa.CanExecuteRaw);
-            options.TryGetValue("intervalFunc", out pa.IntervalFuncRaw);
+                if (float.TryParse(pd, out var periodValue))
+                    pa.Period = periodValue;
+            if (options.TryGetValue("canExecute", out var canExecuteValue))
+                pa.CanExecuteRaw = canExecuteValue;
+            if (options.TryGetValue("intervalFunc", out var intervalFuncValue))
+                pa.IntervalFuncRaw = intervalFuncValue;
             return pa;
         }
 
