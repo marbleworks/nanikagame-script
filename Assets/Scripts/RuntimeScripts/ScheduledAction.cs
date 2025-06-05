@@ -9,15 +9,13 @@ namespace RuntimeScripting
     /// </summary>
     public class ScheduledAction
     {
-        private readonly ActionParameter param;
         private readonly ParsedAction parsed;
         private readonly RuntimeTextScriptController controller;
         private float elapsed;
         private float nextTime;
 
-        public ScheduledAction(ActionParameter param, ParsedAction parsed, RuntimeTextScriptController controller)
+        public ScheduledAction(ParsedAction parsed, RuntimeTextScriptController controller)
         {
-            this.param = param;
             this.parsed = parsed;
             this.controller = controller;
             nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
@@ -39,6 +37,7 @@ namespace RuntimeScripting
 
                 if (string.IsNullOrEmpty(parsed.CanExecuteRaw) || ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
                 {
+                    var param = controller.CreateParameter(parsed);
                     controller.ExecuteActionImmediately(param);
                 }
                 nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
