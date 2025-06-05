@@ -140,6 +140,10 @@ namespace RuntimeScripting
                         int value = Enum.TryParse(id, out FunctionInt fi)
                             ? gameLogic.EvaluateFunctionInt(fi, args.ToArray())
                             : gameLogic.EvaluateFunctionInt(id, args.ToArray());
+
+                        // Continue parsing if the result participates in an arithmetic expression
+                        value = ContinueTerm(value);
+                        value = ContinueExpression(value);
                         return value.ToString();
                     }
 
@@ -151,6 +155,32 @@ namespace RuntimeScripting
                 // that evaluates to an integer.
                 int exprValue = ParseExpression();
                 return exprValue.ToString();
+            }
+
+            private int ContinueTerm(int currentValue)
+            {
+                var left = currentValue;
+                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseFactor();
+                    left = op == TokenType.Star ? left * right : left / right;
+                }
+                return left;
+            }
+
+            private int ContinueExpression(int currentValue)
+            {
+                var result = currentValue;
+                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseTerm();
+                    result = op == TokenType.Plus ? result + right : result - right;
+                }
+                return result;
             }
 
             private void Advance()
