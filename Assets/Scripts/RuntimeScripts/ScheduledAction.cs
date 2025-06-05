@@ -51,22 +51,7 @@ namespace RuntimeScripting
             if (string.IsNullOrEmpty(parsed.IntervalFuncRaw))
                 return parsed.Interval;
 
-            var s = parsed.IntervalFuncRaw.Trim();
-            int open = s.IndexOf('(');
-            int close = s.LastIndexOf(')');
-            if (open > 0 && close > open)
-            {
-                var func = s.Substring(0, open);
-                var argsPart = s.Substring(open + 1, close - open - 1);
-                var args = string.IsNullOrWhiteSpace(argsPart) ?
-                    Array.Empty<string>() : argsPart.Split(',');
-                for (int i = 0; i < args.Length; i++)
-                    args[i] = args[i].Trim();
-                if (Enum.TryParse(func, out FunctionFloat ff))
-                    return controller.GameLogic.EvaluateFunctionFloat(ff, args);
-                return controller.GameLogic.EvaluateFunctionFloat(func, args);
-            }
-            return parsed.Interval;
+            return IntExpressionEvaluator.EvaluateFloat(parsed.IntervalFuncRaw, controller.GameLogic);
         }
 
         private float EvaluatePeriod()
@@ -74,22 +59,7 @@ namespace RuntimeScripting
             if (string.IsNullOrEmpty(parsed.PeriodFuncRaw))
                 return parsed.Period;
 
-            var s = parsed.PeriodFuncRaw.Trim();
-            int open = s.IndexOf('(');
-            int close = s.LastIndexOf(')');
-            if (open > 0 && close > open)
-            {
-                var func = s.Substring(0, open);
-                var argsPart = s.Substring(open + 1, close - open - 1);
-                var args = string.IsNullOrWhiteSpace(argsPart) ?
-                    Array.Empty<string>() : argsPart.Split(',');
-                for (int i = 0; i < args.Length; i++)
-                    args[i] = args[i].Trim();
-                if (Enum.TryParse(func, out FunctionFloat ff))
-                    return controller.GameLogic.EvaluateFunctionFloat(ff, args);
-                return controller.GameLogic.EvaluateFunctionFloat(func, args);
-            }
-            return parsed.Period;
+            return IntExpressionEvaluator.EvaluateFloat(parsed.PeriodFuncRaw, controller.GameLogic);
         }
     }
 }
