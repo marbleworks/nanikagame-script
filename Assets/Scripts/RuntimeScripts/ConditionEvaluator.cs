@@ -169,12 +169,101 @@ namespace RuntimeScripting
                             value = gameLogic.EvaluateFunctionInt(fi, args.ToArray());
                         else
                             value = gameLogic.EvaluateFunctionInt(id, args.ToArray());
+
+                        // Continue parsing if this value participates in an arithmetic expression
+                        value = ContinueTerm(value);
+                        value = ContinueExpression(value);
                         return value.ToString();
                     }
                     return id;
                 }
 
                 throw new Exception("Invalid argument");
+            }
+
+            private int ContinueTerm(int currentValue)
+            {
+                var left = currentValue;
+                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseIntFactor();
+                    left = op == TokenType.Star ? left * right : left / right;
+                }
+                return left;
+            }
+
+            private int ContinueExpression(int currentValue)
+            {
+                var result = currentValue;
+                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseIntTerm();
+                    result = op == TokenType.Plus ? result + right : result - right;
+                }
+                return result;
+            }
+
+            private int ParseIntTerm()
+            {
+                var left = ParseIntFactor();
+                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseIntFactor();
+                    left = op == TokenType.Star ? left * right : left / right;
+                }
+                return left;
+            }
+
+            private int ParseIntFactor()
+            {
+                if (current.Type == TokenType.Number)
+                {
+                    var v = int.Parse(current.Value, CultureInfo.InvariantCulture);
+                    Advance();
+                    return v;
+                }
+
+                if (current.Type == TokenType.LParen)
+                {
+                    Advance();
+                    var value = ParseIntTerm();
+                    value = ContinueExpression(value);
+                    Expect(TokenType.RParen);
+                    return value;
+                }
+
+                if (current.Type == TokenType.Identifier)
+                {
+                    var func = current.Value;
+                    Advance();
+                    Expect(TokenType.LParen);
+                    var args = new List<string>();
+                    if (current.Type != TokenType.RParen)
+                    {
+                        args.Add(ParseArgument());
+                        while (current.Type == TokenType.Comma)
+                        {
+                            Advance();
+                            args.Add(ParseArgument());
+                        }
+                    }
+                    Expect(TokenType.RParen);
+                    int value;
+                    if (Enum.TryParse(func, out FunctionInt fi))
+                        value = gameLogic.EvaluateFunctionInt(fi, args.ToArray());
+                    else
+                        value = gameLogic.EvaluateFunctionInt(func, args.ToArray());
+
+                    return value;
+                }
+
+                throw new Exception("Invalid integer factor");
             }
 
             private static bool Compare(int left, TokenType op, int right)
@@ -235,6 +324,10 @@ namespace RuntimeScripting
                     case ')': index++; return new Token(TokenType.RParen, ")");
                     case ',': index++; return new Token(TokenType.Comma, ",");
                     case '!': index++; return new Token(TokenType.Not, "!");
+                    case '+': index++; return new Token(TokenType.Plus, "+");
+                    case '-': index++; return new Token(TokenType.Minus, "-");
+                    case '*': index++; return new Token(TokenType.Star, "*");
+                    case '/': index++; return new Token(TokenType.Slash, "/");
                 }
 
                 if (c == '&' && Peek(1) == '&')
@@ -310,6 +403,10 @@ namespace RuntimeScripting
             LParen,
             RParen,
             Comma,
+            Plus,
+            Minus,
+            Star,
+            Slash,
             And,
             Or,
             Not,
