@@ -114,20 +114,17 @@ namespace RuntimeScripting
 
             private string ParseArgument()
             {
-                if (current.Type == TokenType.Number)
-                {
-                    var v = current.Value;
-                    Advance();
-                    return v;
-                }
+                // Allow arithmetic expressions in argument positions and also
+                // support plain identifiers that represent string parameters.
 
                 if (current.Type == TokenType.Identifier)
                 {
                     var id = current.Value;
                     Advance();
+
+                    // Nested function call
                     if (current.Type == TokenType.LParen)
                     {
-                        // nested function call
                         Expect(TokenType.LParen);
                         var args = new List<string>();
                         if (current.Type != TokenType.RParen)
@@ -140,17 +137,20 @@ namespace RuntimeScripting
                             }
                         }
                         Expect(TokenType.RParen);
-                        int value;
-                        if (Enum.TryParse(id, out FunctionInt fi))
-                            value = gameLogic.EvaluateFunctionInt(fi, args.ToArray());
-                        else
-                            value = gameLogic.EvaluateFunctionInt(id, args.ToArray());
+                        int value = Enum.TryParse(id, out FunctionInt fi)
+                            ? gameLogic.EvaluateFunctionInt(fi, args.ToArray())
+                            : gameLogic.EvaluateFunctionInt(id, args.ToArray());
                         return value.ToString();
                     }
+
+                    // Identifier without parentheses is a string argument
                     return id;
                 }
 
-                throw new Exception("Invalid argument");
+                // Any other token sequence represents an arithmetic expression
+                // that evaluates to an integer.
+                int exprValue = ParseExpression();
+                return exprValue.ToString();
             }
 
             private void Advance()
