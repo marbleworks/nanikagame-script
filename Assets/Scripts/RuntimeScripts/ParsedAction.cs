@@ -11,6 +11,7 @@ namespace RuntimeScripting
         public List<string> Args { get; } = new List<string>();
         public float Interval { get; set; }
         public float Period { get; set; }
+        public string PeriodFuncRaw { get; set; }
         public string Condition { get; set; }
         public string CanExecuteRaw { get; set; }
         public string IntervalFuncRaw { get; set; }
