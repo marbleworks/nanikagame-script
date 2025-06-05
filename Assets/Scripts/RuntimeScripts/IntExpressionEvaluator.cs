@@ -388,10 +388,33 @@ namespace RuntimeScripting
                     case ',': index++; return new Token(TokenType.Comma, ",");
                 }
 
-                if (char.IsDigit(c))
+                if (char.IsDigit(c) || (c == '.' && index + 1 < text.Length && char.IsDigit(text[index + 1])))
                 {
                     int start = index;
-                    while (index < text.Length && char.IsDigit(text[index])) index++;
+                    bool hasDot = false;
+                    if (c == '.')
+                    {
+                        hasDot = true;
+                        index++;
+                    }
+
+                    while (index < text.Length)
+                    {
+                        char nc = text[index];
+                        if (char.IsDigit(nc))
+                        {
+                            index++;
+                        }
+                        else if (nc == '.' && !hasDot)
+                        {
+                            hasDot = true;
+                            index++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
                     return new Token(TokenType.Number, text.Substring(start, index - start));
                 }
 
