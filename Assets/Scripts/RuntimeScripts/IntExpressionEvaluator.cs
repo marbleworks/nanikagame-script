@@ -12,7 +12,8 @@ namespace RuntimeScripting
     {
         public static int Evaluate(string expression, GameLogic gameLogic)
         {
-            return (int)Math.Round(EvaluateFloat(expression, gameLogic));
+            // Floor the result when converting from float to int
+            return (int)Math.Floor(EvaluateFloat(expression, gameLogic));
         }
 
         public static float EvaluateFloat(string expression, GameLogic gameLogic)
