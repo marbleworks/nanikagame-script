@@ -73,16 +73,16 @@ namespace RuntimeScripting
                 if (!string.IsNullOrEmpty(pa.Condition) && !ConditionEvaluator.Evaluate(pa.Condition, GameLogic))
                     continue;
 
-                var param = Convert(pa);
                 if (pa.Interval > 0 || !string.IsNullOrEmpty(pa.IntervalFuncRaw))
                 {
-                    var sa = new ScheduledAction(param, pa, this);
+                    var sa = new ScheduledAction(pa, this);
                     scheduled.Add(sa);
                     var co = StartCoroutine(RunScheduledAction(sa));
                     running.Add(co);
                 }
                 else
                 {
+                    var param = CreateParameter(pa);
                     ExecuteActionImmediately(param);
                 }
             }
@@ -122,7 +122,7 @@ namespace RuntimeScripting
             }
         }
 
-        private ActionParameter Convert(ParsedAction pa)
+        internal ActionParameter CreateParameter(ParsedAction pa)
         {
             var param = new ActionParameter
             {
