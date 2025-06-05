@@ -139,11 +139,39 @@ namespace RuntimeScripting
 
             private string ParseArgument()
             {
-                if (current.Type == TokenType.Identifier || current.Type == TokenType.Number)
+                if (current.Type == TokenType.Number)
                 {
                     var val = current.Value;
                     Advance();
                     return val;
+                }
+
+                if (current.Type == TokenType.Identifier)
+                {
+                    var id = current.Value;
+                    Advance();
+                    if (current.Type == TokenType.LParen)
+                    {
+                        Expect(TokenType.LParen);
+                        var args = new List<string>();
+                        if (current.Type != TokenType.RParen)
+                        {
+                            args.Add(ParseArgument());
+                            while (current.Type == TokenType.Comma)
+                            {
+                                Advance();
+                                args.Add(ParseArgument());
+                            }
+                        }
+                        Expect(TokenType.RParen);
+                        int value;
+                        if (Enum.TryParse(id, out FunctionInt fi))
+                            value = gameLogic.EvaluateFunctionInt(fi, args.ToArray());
+                        else
+                            value = gameLogic.EvaluateFunctionInt(id, args.ToArray());
+                        return value.ToString();
+                    }
+                    return id;
                 }
 
                 throw new Exception("Invalid argument");
