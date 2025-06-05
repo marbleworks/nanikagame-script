@@ -19,7 +19,7 @@ namespace RuntimeScripting
             {
                 var tokenizer = new Tokenizer(expression);
                 var parser = new Parser(tokenizer, gameLogic);
-                return parser.ParseExpression();
+                return parser.ParseFullExpression();
             }
             catch (Exception)
             {
@@ -40,7 +40,14 @@ namespace RuntimeScripting
                 current = tokenizer.Next();
             }
 
-            public int ParseExpression()
+            public int ParseFullExpression()
+            {
+                var result = ParseExpression();
+                Expect(TokenType.EOF);
+                return result;
+            }
+
+            private int ParseExpression()
             {
                 var result = ParseTerm();
                 while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
@@ -50,7 +57,6 @@ namespace RuntimeScripting
                     var right = ParseTerm();
                     result = op == TokenType.Plus ? result + right : result - right;
                 }
-                Expect(TokenType.EOF);
                 return result;
             }
 
