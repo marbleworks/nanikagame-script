@@ -120,11 +120,7 @@ namespace RuntimeScripting
                     args.Add(a.Trim());
             }
 
-            var options = new Dictionary<string, string>();
-            foreach (Match om in optionRegex.Matches(optionsPart))
-            {
-                options[om.Groups[1].Value] = om.Groups[2].Value;
-            }
+            var options = ParseOptions(optionsPart);
 
             var pa = new ParsedAction
             {
@@ -188,6 +184,73 @@ namespace RuntimeScripting
         private static ActionType ParseActionType(string name)
         {
             return Enum.TryParse<ActionType>(name, out var at) ? at : ActionType.Attack;
+        }
+
+        private static Dictionary<string, string> ParseOptions(string text)
+        {
+            var result = new Dictionary<string, string>();
+            if (string.IsNullOrEmpty(text))
+                return result;
+
+            int i = 0;
+            while (i < text.Length)
+            {
+                // skip whitespace
+                while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
+                if (i >= text.Length) break;
+
+                int keyStart = i;
+                while (i < text.Length && text[i] != '=') i++;
+                if (i >= text.Length) break;
+                string key = text.Substring(keyStart, i - keyStart).Trim();
+                i++; // skip '='
+
+                while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
+                int valueStart = i;
+                int depth = 0;
+                bool inQuote = false;
+                char quoteChar = '\0';
+                while (i < text.Length)
+                {
+                    char c = text[i];
+                    if (inQuote)
+                    {
+                        if (c == quoteChar)
+                            inQuote = false;
+                    }
+                    else
+                    {
+                        if (c == '"' || c == '\'')
+                        {
+                            inQuote = true;
+                            quoteChar = c;
+                        }
+                        else if (c == '(')
+                            depth++;
+                        else if (c == ')')
+                        {
+                            if (depth > 0)
+                                depth--;
+                        }
+                        else if (char.IsWhiteSpace(c) && depth == 0)
+                        {
+                            break;
+                        }
+                    }
+                    i++;
+                }
+
+                string value = text.Substring(valueStart, i - valueStart).Trim();
+                if (value.Length >= 2 &&
+                    ((value[0] == '"' && value[value.Length - 1] == '"') ||
+                     (value[0] == '\'' && value[value.Length - 1] == '\'')))
+                {
+                    value = value.Substring(1, value.Length - 2);
+                }
+                result[key] = value;
+            }
+
+            return result;
         }
     }
 }
