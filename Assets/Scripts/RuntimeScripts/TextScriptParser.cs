@@ -11,7 +11,6 @@ namespace RuntimeScripting
     public static class TextScriptParser
     {
         private static readonly Regex optionRegex = new Regex(@"(\w+)=([^\s]+)");
-        private static readonly Regex actionRegex = new Regex(@"(?<name>\w+)\((?<args>[^)]*)\)");
 
         /// <summary>
         /// Loads all script files and returns a dictionary of <see cref="ParsedEvent"/> objects.
@@ -112,18 +111,15 @@ namespace RuntimeScripting
                 rest = line.Substring(colon + 1).Trim();
             }
 
-            var m = actionRegex.Match(rest);
-            if (!m.Success)
+            if (!TryExtractAction(rest, out var name, out var argString, out var optionsPart))
                 return null;
-            var name = m.Groups["name"].Value;
             var args = new List<string>();
-            if (m.Groups["args"].Length > 0)
+            if (!string.IsNullOrEmpty(argString))
             {
-                foreach (var a in m.Groups["args"].Value.Split(','))
+                foreach (var a in argString.Split(','))
                     args.Add(a.Trim());
             }
 
-            var optionsPart = rest.Substring(m.Length).Trim();
             var options = new Dictionary<string, string>();
             foreach (Match om in optionRegex.Matches(optionsPart))
             {
@@ -147,6 +143,38 @@ namespace RuntimeScripting
             if (options.TryGetValue("intervalFunc", out var intervalFuncValue))
                 pa.IntervalFuncRaw = intervalFuncValue;
             return pa;
+        }
+
+        private static bool TryExtractAction(string text, out string name, out string args, out string optionsPart)
+        {
+            name = null;
+            args = null;
+            optionsPart = string.Empty;
+
+            int open = text.IndexOf('(');
+            if (open <= 0)
+                return false;
+
+            name = text.Substring(0, open).Trim();
+            int depth = 0;
+            int i = open;
+            for (; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (c == '(')
+                    depth++;
+                else if (c == ')')
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        args = text.Substring(open + 1, i - open - 1);
+                        optionsPart = text.Substring(i + 1).Trim();
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private static ActionType ParseActionType(string name)
