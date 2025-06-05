@@ -12,18 +12,23 @@ namespace RuntimeScripting
     {
         public static int Evaluate(string expression, GameLogic gameLogic)
         {
+            return (int)Math.Round(EvaluateFloat(expression, gameLogic));
+        }
+
+        public static float EvaluateFloat(string expression, GameLogic gameLogic)
+        {
             if (string.IsNullOrWhiteSpace(expression))
-                return 0;
+                return 0f;
 
             try
             {
                 var tokenizer = new Tokenizer(expression);
-                var parser = new Parser(tokenizer, gameLogic);
+                var parser = new FloatParser(tokenizer, gameLogic);
                 return parser.ParseFullExpression();
             }
             catch (Exception)
             {
-                return 0;
+                return 0f;
             }
         }
 
@@ -171,6 +176,164 @@ namespace RuntimeScripting
             }
 
             private int ContinueExpression(int currentValue)
+            {
+                var result = currentValue;
+                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseTerm();
+                    result = op == TokenType.Plus ? result + right : result - right;
+                }
+                return result;
+            }
+
+            private void Advance()
+            {
+                current = tokenizer.Next();
+            }
+
+            private void Expect(TokenType type)
+            {
+                if (current.Type != type)
+                    throw new Exception("Expected " + type);
+                Advance();
+            }
+        }
+
+        private class FloatParser
+        {
+            private readonly Tokenizer tokenizer;
+            private Token current;
+            private readonly GameLogic gameLogic;
+
+            public FloatParser(Tokenizer tokenizer, GameLogic gameLogic)
+            {
+                this.tokenizer = tokenizer;
+                this.gameLogic = gameLogic;
+                current = tokenizer.Next();
+            }
+
+            public float ParseFullExpression()
+            {
+                var result = ParseExpression();
+                Expect(TokenType.EOF);
+                return result;
+            }
+
+            private float ParseExpression()
+            {
+                var result = ParseTerm();
+                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseTerm();
+                    result = op == TokenType.Plus ? result + right : result - right;
+                }
+                return result;
+            }
+
+            private float ParseTerm()
+            {
+                var left = ParseFactor();
+                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseFactor();
+                    left = op == TokenType.Star ? left * right : left / right;
+                }
+                return left;
+            }
+
+            private float ParseFactor()
+            {
+                if (current.Type == TokenType.LParen)
+                {
+                    Advance();
+                    var value = ParseExpression();
+                    Expect(TokenType.RParen);
+                    return value;
+                }
+
+                if (current.Type == TokenType.Number)
+                {
+                    var v = float.Parse(current.Value, CultureInfo.InvariantCulture);
+                    Advance();
+                    return v;
+                }
+
+                if (current.Type == TokenType.Identifier)
+                {
+                    var func = current.Value;
+                    Advance();
+                    Expect(TokenType.LParen);
+                    var args = new List<string>();
+                    if (current.Type != TokenType.RParen)
+                    {
+                        args.Add(ParseArgument());
+                        while (current.Type == TokenType.Comma)
+                        {
+                            Advance();
+                            args.Add(ParseArgument());
+                        }
+                    }
+                    Expect(TokenType.RParen);
+                    return gameLogic.EvaluateFunctionFloat(func, args.ToArray());
+                }
+
+                throw new Exception("Unexpected token");
+            }
+
+            private string ParseArgument()
+            {
+                if (current.Type == TokenType.Identifier)
+                {
+                    var id = current.Value;
+                    Advance();
+
+                    if (current.Type == TokenType.LParen)
+                    {
+                        Expect(TokenType.LParen);
+                        var args = new List<string>();
+                        if (current.Type != TokenType.RParen)
+                        {
+                            args.Add(ParseArgument());
+                            while (current.Type == TokenType.Comma)
+                            {
+                                Advance();
+                                args.Add(ParseArgument());
+                            }
+                        }
+                        Expect(TokenType.RParen);
+                        float value = gameLogic.EvaluateFunctionFloat(id, args.ToArray());
+                        value = ContinueTerm(value);
+                        value = ContinueExpression(value);
+                        return value.ToString(CultureInfo.InvariantCulture);
+                    }
+
+                    return id;
+                }
+
+                float exprValue = ParseExpression();
+                return exprValue.ToString(CultureInfo.InvariantCulture);
+            }
+
+            private float ContinueTerm(float currentValue)
+            {
+                var left = currentValue;
+                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
+                {
+                    var op = current.Type;
+                    Advance();
+                    var right = ParseFactor();
+                    left = op == TokenType.Star ? left * right : left / right;
+                }
+                return left;
+            }
+
+            private float ContinueExpression(float currentValue)
             {
                 var result = currentValue;
                 while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
