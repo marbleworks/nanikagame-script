@@ -8,30 +8,9 @@ This document outlines the expectations for AI agents contributing to the Data-D
 ## Repository Overview
 ```
 /Assets
-  /Resources
-    /ScriptFiles
-      OnSpawned_Attack5.interval9.txt
-      OnSpawned_AddHp2.interval1.txt
-      OnEvolutionSummoned_AddStrength1.txt
-      OnSpawned_AddSpikes1.interval3.txt
-      OnEvolutionSummoned_AddSpeed1_AddStrength1.txt
-      OnEvolutionSummoned_RemoveDebuff20.txt
-      OnSpawned_Attack50.ifUseSun6.interval3.txt
-      OnSpawned_AttackDynamicCherry.interval2.txt
-      OnSpawned_SetVolt1.interval1.txt
-      OnCombo_AttackComboCount.txt
-      OnCombo_IfCombo10_Invuln30.txt
-      OnStartRound_AddMaxHp20.txt
-      OnHpChanged_IfHpMin100_Strength10.txt
   /Scripts
     /RuntimeScripts
-      ParsedAction.cs
-      ParsedEvent.cs
-      TextScriptParser.cs
-      RuntimeTextScriptController.cs
-      ScheduledAction.cs
-      ConditionEvaluator.cs
-      GameLogic.cs
+      Program files here
 
 README.md
 AGENTS.md  ← this file
