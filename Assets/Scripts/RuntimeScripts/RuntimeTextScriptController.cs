@@ -201,21 +201,7 @@ namespace RuntimeScripting
             if (int.TryParse(arg, out var value))
                 return value;
 
-            int open = arg.IndexOf('(');
-            int close = arg.LastIndexOf(')');
-            if (open > 0 && close > open)
-            {
-                var func = arg.Substring(0, open);
-                var argsPart = arg.Substring(open + 1, close - open - 1);
-                var parts = string.IsNullOrWhiteSpace(argsPart)
-                    ? Array.Empty<string>()
-                    : argsPart.Split(',');
-                for (int i = 0; i < parts.Length; i++)
-                    parts[i] = parts[i].Trim();
-                return GameLogic.EvaluateFunctionInt(func, parts);
-            }
-
-            return 0;
+            return IntExpressionEvaluator.Evaluate(arg, GameLogic);
         }
     }
 }
