@@ -22,14 +22,18 @@ namespace RuntimeScripting
 
         public bool UseResource(string id, int value)
         {
-            if (_resourceCount < value) return false;
-            Debug.Log($"{_resourceCount} -> {_resourceCount - value}");
+            if (_resourceCount < value)
+            {
+                Debug.Log($"UseResource {_resourceCount} < {value}");
+                return false;
+            }
+            Debug.Log($"UseResource {_resourceCount} -> {_resourceCount - value}");
             _resourceCount -= value;
             return true;
         }
 
         public int ResourceCount(string spec) => _resourceCount;
-        private int _resourceCount = 10;
+        private int _resourceCount = 1;
         public void AddResource(int value) => _resourceCount += value;
         public int NanikaCount(string spec) => 2;
         public bool NotDebuffed(string target) => true;
