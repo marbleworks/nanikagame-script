@@ -113,12 +113,8 @@ namespace RuntimeScripting
 
             if (!TryExtractAction(rest, out var name, out var argString, out var optionsPart))
                 return null;
-            var args = new List<string>();
-            if (!string.IsNullOrEmpty(argString))
-            {
-                foreach (var a in argString.Split(','))
-                    args.Add(a.Trim());
-            }
+            var args = string.IsNullOrEmpty(argString) ?
+                new List<string>() : ParseArguments(argString);
 
             var options = ParseOptions(optionsPart);
 
@@ -158,6 +154,51 @@ namespace RuntimeScripting
             if (options.TryGetValue("intervalFunc", out var intervalFuncValue))
                 pa.IntervalFuncRaw = intervalFuncValue;
             return pa;
+        }
+
+        private static List<string> ParseArguments(string text)
+        {
+            var list = new List<string>();
+            int depth = 0;
+            bool inString = false;
+            char quote = '\0';
+            int start = 0;
+            for (int i = 0; i <= text.Length; i++)
+            {
+                if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
+                {
+                    var part = text.Substring(start, i - start).Trim();
+                    if (part.Length > 0)
+                        list.Add(Unquote(part));
+                    start = i + 1;
+                }
+                else if (!inString && text[i] == '(')
+                    depth++;
+                else if (!inString && text[i] == ')')
+                    depth--;
+                else if (text[i] == '"' || text[i] == '\'')
+                {
+                    if (inString && text[i] == quote)
+                        inString = false;
+                    else if (!inString)
+                    {
+                        inString = true;
+                        quote = text[i];
+                    }
+                }
+            }
+            return list;
+        }
+
+        private static string Unquote(string value)
+        {
+            if (value.Length >= 2 &&
+                ((value[0] == '"' && value[value.Length - 1] == '"') ||
+                 (value[0] == '\'' && value[value.Length - 1] == '\'')))
+            {
+                return value.Substring(1, value.Length - 2);
+            }
+            return value;
         }
 
         private static bool TryExtractAction(string text, out string name, out string args, out string optionsPart)

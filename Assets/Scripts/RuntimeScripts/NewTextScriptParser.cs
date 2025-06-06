@@ -302,7 +302,7 @@ namespace RuntimeScripting
                     {
                         var part = text.Substring(start, i - start).Trim();
                         if (part.Length > 0)
-                            list.Add(part);
+                            list.Add(Unquote(part));
                         start = i + 1;
                     }
                     else if (!inString && text[i] == '(')
@@ -342,7 +342,7 @@ namespace RuntimeScripting
                             {
                                 string key = part.Substring(0, eq).Trim();
                                 string value = part.Substring(eq + 1).Trim();
-                                dict[key] = value;
+                                dict[key] = Unquote(value);
                             }
                         }
                         start = i + 1;
@@ -491,6 +491,19 @@ namespace RuntimeScripting
 
                 // If we reach here the text was malformed; return the remainder
                 return text.Substring(start);
+            }
+
+            private static string Unquote(string value)
+            {
+                if (value.Length >= 2)
+                {
+                    if ((value[0] == '"' && value[value.Length - 1] == '"') ||
+                        (value[0] == '\'' && value[value.Length - 1] == '\''))
+                    {
+                        return value.Substring(1, value.Length - 2);
+                    }
+                }
+                return value;
             }
         }
     }
