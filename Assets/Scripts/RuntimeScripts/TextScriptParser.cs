@@ -97,7 +97,8 @@ namespace RuntimeScripting
                 Expect(')');
                 SkipWhite();
                 Expect('{');
-                conditionStack.Push(expr.Trim());
+                var accumulated = expr.Trim();
+                conditionStack.Push(accumulated);
                 SkipLine();
                 while (SkipWhite() && !StartsWith("}"))
                 {
@@ -122,24 +123,29 @@ namespace RuntimeScripting
                 Expect('}');
                 conditionStack.Pop();
                 SkipWhite();
-                // else or else if
-                if (StartsWith("else"))
+
+                // Handle any number of else-if clauses and a final else
+                while (StartsWith("else"))
                 {
                     ExpectString("else");
                     SkipWhite();
                     string cond = null;
+                    bool hasElseIf = false;
                     if (StartsWith("if"))
                     {
+                        hasElseIf = true;
                         ExpectString("if");
                         SkipWhite();
                         Expect('(');
                         cond = ReadEnclosed('(', ')');
                         Expect(')');
-                        conditionStack.Push($"!({expr.Trim()}) && ({cond.Trim()})");
+                        var trimmed = cond.Trim();
+                        conditionStack.Push($"!({accumulated}) && ({trimmed})");
+                        accumulated = $"({accumulated}) || ({trimmed})";
                     }
                     else
                     {
-                        conditionStack.Push($"!({expr.Trim()})");
+                        conditionStack.Push($"!({accumulated})");
                     }
                     SkipWhite();
                     Expect('{');
@@ -166,6 +172,10 @@ namespace RuntimeScripting
                     }
                     Expect('}');
                     conditionStack.Pop();
+                    SkipWhite();
+
+                    if (!hasElseIf)
+                        break;
                 }
             }
 
