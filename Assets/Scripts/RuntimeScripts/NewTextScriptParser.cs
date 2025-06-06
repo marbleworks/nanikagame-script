@@ -229,10 +229,12 @@ namespace RuntimeScripting
             {
                 var list = new List<(string, List<string>)>();
                 int depth = 0;
+                bool inString = false;
+                char stringChar = '\0';
                 int start = 0;
                 for (int i = 0; i <= text.Length; i++)
                 {
-                    if (i == text.Length || (text[i] == ',' && depth == 0))
+                    if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
                     {
                         var part = text.Substring(start, i - start).Trim();
                         if (part.Length > 0)
@@ -241,10 +243,20 @@ namespace RuntimeScripting
                         }
                         start = i + 1;
                     }
-                    else if (text[i] == '(')
+                    else if (!inString && text[i] == '(')
                         depth++;
-                    else if (text[i] == ')')
+                    else if (!inString && text[i] == ')')
                         depth--;
+                    else if (text[i] == '"' || text[i] == '\'')
+                    {
+                        if (inString && text[i] == stringChar)
+                            inString = false;
+                        else if (!inString)
+                        {
+                            inString = true;
+                            stringChar = text[i];
+                        }
+                    }
                 }
                 return list;
             }
@@ -270,20 +282,32 @@ namespace RuntimeScripting
             {
                 var list = new List<string>();
                 int depth = 0;
+                bool inString = false;
+                char stringChar = '\0';
                 int start = 0;
                 for (int i = 0; i <= text.Length; i++)
                 {
-                    if (i == text.Length || (text[i] == ',' && depth == 0))
+                    if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
                     {
                         var part = text.Substring(start, i - start).Trim();
                         if (part.Length > 0)
                             list.Add(part);
                         start = i + 1;
                     }
-                    else if (text[i] == '(')
+                    else if (!inString && text[i] == '(')
                         depth++;
-                    else if (text[i] == ')')
+                    else if (!inString && text[i] == ')')
                         depth--;
+                    else if (text[i] == '"' || text[i] == '\'')
+                    {
+                        if (inString && text[i] == stringChar)
+                            inString = false;
+                        else if (!inString)
+                        {
+                            inString = true;
+                            stringChar = text[i];
+                        }
+                    }
                 }
                 return list;
             }
@@ -292,10 +316,12 @@ namespace RuntimeScripting
             {
                 var dict = new Dictionary<string, string>();
                 int depth = 0;
+                bool inString = false;
+                char stringChar = '\0';
                 int start = 0;
                 for (int i = 0; i <= text.Length; i++)
                 {
-                    if (i == text.Length || (text[i] == ',' && depth == 0))
+                    if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
                     {
                         var part = text.Substring(start, i - start).Trim();
                         if (part.Length > 0)
@@ -310,10 +336,20 @@ namespace RuntimeScripting
                         }
                         start = i + 1;
                     }
-                    else if (text[i] == '(')
+                    else if (!inString && text[i] == '(')
                         depth++;
-                    else if (text[i] == ')')
+                    else if (!inString && text[i] == ')')
                         depth--;
+                    else if (text[i] == '"' || text[i] == '\'')
+                    {
+                        if (inString && text[i] == stringChar)
+                            inString = false;
+                        else if (!inString)
+                        {
+                            inString = true;
+                            stringChar = text[i];
+                        }
+                    }
                 }
                 return dict;
             }
@@ -396,24 +432,52 @@ namespace RuntimeScripting
             {
                 int depth = 1;
                 int start = index;
+                bool inString = false;
+                char stringChar = '\0';
+
                 while (index < text.Length)
                 {
                     char ch = text[index];
-                    if (ch == open)
+
+                    if (inString)
                     {
-                        depth++;
-                    }
-                    else if (ch == close)
-                    {
-                        depth--;
-                        if (depth == 0)
+                        if (ch == '\\' && index + 1 < text.Length)
                         {
-                            // Do not consume the closing character so that caller can verify it
-                            return text.Substring(start, index - start);
+                            // Skip escaped characters inside strings
+                            index += 2;
+                            continue;
+                        }
+
+                        if (ch == stringChar)
+                        {
+                            inString = false;
                         }
                     }
+                    else
+                    {
+                        if (ch == '"' || ch == '\'')
+                        {
+                            inString = true;
+                            stringChar = ch;
+                        }
+                        else if (ch == open)
+                        {
+                            depth++;
+                        }
+                        else if (ch == close)
+                        {
+                            depth--;
+                            if (depth == 0)
+                            {
+                                // Do not consume the closing character so that caller can verify it
+                                return text.Substring(start, index - start);
+                            }
+                        }
+                    }
+
                     index++;
                 }
+
                 // If we reach here the text was malformed; return the remainder
                 return text.Substring(start);
             }
