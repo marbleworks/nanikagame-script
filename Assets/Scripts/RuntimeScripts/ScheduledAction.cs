@@ -14,6 +14,7 @@ namespace RuntimeScripting
         private float elapsed;
         private float nextTime;
         private float periodLimit;
+        private int executedCount;
 
         public ScheduledAction(ParsedAction parsed, RuntimeTextScriptController controller)
         {
@@ -30,20 +31,41 @@ namespace RuntimeScripting
         {
             elapsed = 0f;
             nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
-            while (periodLimit <= 0 || elapsed < periodLimit)
+            while (true)
             {
+                if (!ShouldContinue())
+                    yield break;
+
                 yield return new WaitForSeconds(nextTime);
                 elapsed += nextTime;
-                if (periodLimit > 0 && elapsed > periodLimit)
+
+                if (!ShouldContinue())
                     yield break;
 
                 if (string.IsNullOrEmpty(parsed.CanExecuteRaw) || ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
                 {
                     var param = controller.CreateParameter(parsed);
                     controller.ExecuteActionImmediately(param);
+                    executedCount++;
                 }
                 nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
             }
+        }
+
+        /// <summary>
+        /// Determines whether execution should continue based on modifiers.
+        /// </summary>
+        /// <returns>True to keep running; false to stop.</returns>
+        private bool ShouldContinue()
+        {
+            if (periodLimit > 0 && elapsed >= periodLimit)
+                return false;
+            if (parsed.MaxCount > 0 && executedCount >= parsed.MaxCount)
+                return false;
+            if (!string.IsNullOrEmpty(parsed.WhileRaw) &&
+                !ConditionEvaluator.Evaluate(parsed.WhileRaw, controller.GameLogic))
+                return false;
+            return true;
         }
 
         private float EvaluateInterval()

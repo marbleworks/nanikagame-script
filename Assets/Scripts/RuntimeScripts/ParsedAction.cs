@@ -16,6 +16,15 @@ namespace RuntimeScripting
         public string Condition { get; set; }
         public string CanExecuteRaw { get; set; }
         public string IntervalFuncRaw { get; set; }
+        /// <summary>
+        /// Maximum number of times the action will execute. Zero means unlimited.
+        /// </summary>
+        public int MaxCount { get; set; }
+
+        /// <summary>
+        /// Raw expression evaluated each cycle; execution stops when it becomes false.
+        /// </summary>
+        public string WhileRaw { get; set; }
     }
 
     /// <summary>
