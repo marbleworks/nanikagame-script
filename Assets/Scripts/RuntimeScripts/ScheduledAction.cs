@@ -31,36 +31,47 @@ namespace RuntimeScripting
         {
             elapsed = 0f;
             nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
-            while (true)
-            {
-                if (!ShouldContinue())
-                    yield break;
 
+            while (BasicContinue())
+            {
                 yield return new WaitForSeconds(nextTime);
                 elapsed += nextTime;
 
-                if (!ShouldContinue())
+                if (!ShouldContinueWithWhile())
                     yield break;
 
-                if (string.IsNullOrEmpty(parsed.CanExecuteRaw) || ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
+                if (string.IsNullOrEmpty(parsed.CanExecuteRaw) ||
+                    ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
                 {
                     var param = controller.CreateParameter(parsed);
                     controller.ExecuteActionImmediately(param);
                     executedCount++;
                 }
+
                 nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
             }
         }
 
         /// <summary>
-        /// Determines whether execution should continue based on modifiers.
+        /// Determines whether execution should continue ignoring the 'while' expression.
         /// </summary>
         /// <returns>True to keep running; false to stop.</returns>
-        private bool ShouldContinue()
+        private bool BasicContinue()
         {
             if (periodLimit > 0 && elapsed >= periodLimit)
                 return false;
             if (parsed.MaxCount > 0 && executedCount >= parsed.MaxCount)
+                return false;
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether execution should continue, including the 'while' expression.
+        /// </summary>
+        /// <returns>True to keep running; false to stop.</returns>
+        private bool ShouldContinueWithWhile()
+        {
+            if (!BasicContinue())
                 return false;
             if (!string.IsNullOrEmpty(parsed.WhileRaw) &&
                 !ConditionEvaluator.Evaluate(parsed.WhileRaw, controller.GameLogic))
