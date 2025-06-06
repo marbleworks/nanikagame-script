@@ -398,17 +398,24 @@ namespace RuntimeScripting
                 int start = index;
                 while (index < text.Length)
                 {
-                    char ch = text[index++];
+                    char ch = text[index];
                     if (ch == open)
+                    {
                         depth++;
+                    }
                     else if (ch == close)
                     {
                         depth--;
                         if (depth == 0)
-                            break;
+                        {
+                            // Do not consume the closing character so that caller can verify it
+                            return text.Substring(start, index - start);
+                        }
                     }
+                    index++;
                 }
-                return text.Substring(start, index - start - 1);
+                // If we reach here the text was malformed; return the remainder
+                return text.Substring(start);
             }
         }
     }
