@@ -16,6 +16,9 @@ namespace RuntimeScripting
         public string Condition { get; set; }
         public string CanExecuteRaw { get; set; }
         public string IntervalFuncRaw { get; set; }
+        public int MaxCount { get; set; }
+        public string MaxCountRaw { get; set; }
+        public string WhileRaw { get; set; }
     }
 
     /// <summary>

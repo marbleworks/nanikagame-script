@@ -153,6 +153,15 @@ namespace RuntimeScripting
                 pa.CanExecuteRaw = canExecuteValue;
             if (options.TryGetValue("intervalFunc", out var intervalFuncValue))
                 pa.IntervalFuncRaw = intervalFuncValue;
+            if (options.TryGetValue("maxCount", out var maxc))
+            {
+                if (int.TryParse(maxc, out var mc))
+                    pa.MaxCount = mc;
+                else
+                    pa.MaxCountRaw = maxc;
+            }
+            if (options.TryGetValue("while", out var whileVal))
+                pa.WhileRaw = whileVal;
             return pa;
         }
 

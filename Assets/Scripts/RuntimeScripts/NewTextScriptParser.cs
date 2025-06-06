@@ -230,6 +230,15 @@ namespace RuntimeScripting
                             pa.CanExecuteRaw = ce;
                         if (mods.TryGetValue("intervalFunc", out var ivf))
                             pa.IntervalFuncRaw = ivf;
+                        if (mods.TryGetValue("maxCount", out var mc))
+                        {
+                            if (int.TryParse(mc, out var mcv))
+                                pa.MaxCount = mcv;
+                            else
+                                pa.MaxCountRaw = mc;
+                        }
+                        if (mods.TryGetValue("while", out var wh))
+                            pa.WhileRaw = wh;
                     }
                     list.Add(pa);
                 }
