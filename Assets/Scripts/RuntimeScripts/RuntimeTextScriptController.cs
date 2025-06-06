@@ -166,6 +166,9 @@ namespace RuntimeScripting
                 case ActionType.SpawnNanika:
                     GameLogic.SpawnNanika(param.Targets, param.StringValue, param.IntValue);
                     break;
+                case ActionType.CallFunction:
+                    GameLogic.EvaluateFunctionFloat(param.FunctionName, param.Args.ToArray());
+                    break;
             }
         }
 
@@ -227,6 +230,10 @@ namespace RuntimeScripting
                         param.StringValue = pa.Args[1];
                     if (pa.Args.Count > 2)
                         param.IntValue = ParseIntArg(pa.Args[2]);
+                    break;
+                case ActionType.CallFunction:
+                    param.FunctionName = pa.FunctionName;
+                    param.Args.AddRange(pa.Args);
                     break;
                 default:
                     if (pa.Args.Count > 0)

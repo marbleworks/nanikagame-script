@@ -8,6 +8,7 @@ namespace RuntimeScripting
     public class ParsedAction
     {
         public ActionType ActionType { get; set; }
+        public string FunctionName { get; set; }
         public List<string> Args { get; } = new List<string>();
         public float Interval { get; set; }
         public float Period { get; set; }
@@ -28,6 +29,7 @@ namespace RuntimeScripting
         RemoveRandomDebuffPlayerEffect,
         AddMaxHp,
         SetNanikaEffectFor,
-        SpawnNanika
+        SpawnNanika,
+        CallFunction
     }
 }
