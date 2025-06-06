@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace RuntimeScripting
 {
@@ -10,11 +11,34 @@ namespace RuntimeScripting
     public class GameLogic
     {
         public int HpMin() => 100;
-        public int ComboCount() => 0;
+        public int ComboCount()
+        {
+            _comboCount++;
+            return _comboCount;
+        }
+
+        private int _comboCount = 0;
         public int Shield() => 0;
-        public bool UseResource(string id, int value) => true;
-        public int NanikaCount(string spec) => 0;
+
+        public bool UseResource(string id, int value)
+        {
+            if (_resourceCount < value) return false;
+            Debug.Log($"{_resourceCount} -> {_resourceCount - value}");
+            _resourceCount -= value;
+            return true;
+        }
+
+        public int ResourceCount(string spec) => _resourceCount;
+        private int _resourceCount = 10;
+        public void AddResource(int value) => _resourceCount += value;
+        public int NanikaCount(string spec) => 2;
         public bool NotDebuffed(string target) => true;
+        
+        public float Interval(float value) => Random.Range(0.1f, value);
+        
+        public int RandomInt(int min, int max) => Random.Range(min, max);
+        
+        public float Double(float value) => value * 2f;
 
         public int EvaluateFunctionInt(FunctionInt func, string[] args)
         {
@@ -24,8 +48,8 @@ namespace RuntimeScripting
                 case FunctionInt.ComboCount: return ComboCount();
                 case FunctionInt.Shield: return Shield();
                 case FunctionInt.NanikaCount: return NanikaCount(args.Length > 0 ? args[0] : string.Empty);
+                case FunctionInt.ResourceCount: return ResourceCount(args.Length > 0 ? args[0] : string.Empty);
                 case FunctionInt.UseResource: return UseResource(args[0], int.Parse(args[1])) ? 1 : 0;
-                case FunctionInt.NotDebuffed: return NotDebuffed(args[0]) ? 1 : 0;
                 default: return 0;
             }
         }
@@ -49,7 +73,11 @@ namespace RuntimeScripting
             {
                 case FunctionFloat.Interval:
                     if (args.Length > 0 && float.TryParse(args[0], out float v))
-                        return v;
+                        return Interval(v);
+                    return 0f;
+                case FunctionFloat.Double:
+                    if (args.Length > 0 && float.TryParse(args[0], out float v1))
+                        return Double(v1);
                     return 0f;
                 default:
                     return 0f;
@@ -68,6 +96,7 @@ namespace RuntimeScripting
         // Action methods used by RuntimeTextScriptController
         public void Attack(int value)
         {
+            // Debug.Log($"{ResourceCount}");
             Debug.Log($"Attack {value}");
         }
 

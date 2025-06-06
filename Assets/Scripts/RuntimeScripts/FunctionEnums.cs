@@ -11,8 +11,8 @@ namespace RuntimeScripting
         ComboCount,
         Shield,
         NanikaCount,
+        ResourceCount,
         UseResource,
-        NotDebuffed
     }
 
     /// <summary>
@@ -20,6 +20,7 @@ namespace RuntimeScripting
     /// </summary>
     public enum FunctionFloat
     {
-        Interval
+        Interval,
+        Double
     }
 }
