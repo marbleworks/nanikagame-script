@@ -122,11 +122,22 @@ namespace RuntimeScripting
 
             var options = ParseOptions(optionsPart);
 
-            var pa = new ParsedAction
+            var pa = new ParsedAction();
+            if (TryParseActionType(name, out var at))
             {
-                ActionType = ParseActionType(name),
-                Condition = condition
-            };
+                pa.ActionType = at;
+            }
+            else if (Enum.TryParse<FunctionInt>(name, out _) || Enum.TryParse<FunctionFloat>(name, out _))
+            {
+                pa.ActionType = ActionType.CallFunction;
+                pa.FunctionName = name;
+            }
+            else
+            {
+                pa.ActionType = ActionType.CallFunction;
+                pa.FunctionName = name;
+            }
+            pa.Condition = condition;
             pa.Args.AddRange(args);
             if (options.TryGetValue("interval", out var iv))
             {
@@ -181,9 +192,9 @@ namespace RuntimeScripting
             return false;
         }
 
-        private static ActionType ParseActionType(string name)
+        private static bool TryParseActionType(string name, out ActionType at)
         {
-            return Enum.TryParse<ActionType>(name, out var at) ? at : ActionType.Attack;
+            return Enum.TryParse(name, out at);
         }
 
         private static Dictionary<string, string> ParseOptions(string text)
