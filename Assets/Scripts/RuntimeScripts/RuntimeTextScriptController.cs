@@ -32,6 +32,28 @@ namespace RuntimeScripting
         }
 
         /// <summary>
+        /// Loads all script files written in the new DSL from a Resources folder.
+        /// </summary>
+        /// <param name="folder">Resources subfolder containing the scripts.</param>
+        public void LoadV2(string folder)
+        {
+            var loaded = new Dictionary<string, ParsedEvent>();
+            var assets = Resources.LoadAll<TextAsset>(folder);
+            foreach (var asset in assets)
+            {
+                var parsed = NewTextScriptParser.ParseString(asset.text);
+                foreach (var kv in parsed)
+                {
+                    if (!loaded.ContainsKey(kv.Key))
+                        loaded[kv.Key] = kv.Value;
+                    else
+                        loaded[kv.Key].Actions.AddRange(kv.Value.Actions);
+                }
+            }
+            MergeEvents(loaded);
+        }
+
+        /// <summary>
         /// Loads a single script file from the Resources folder.
         /// </summary>
         /// <param name="path">Resource path of the script without extension.</param>
@@ -42,12 +64,37 @@ namespace RuntimeScripting
         }
 
         /// <summary>
+        /// Loads a single script file written in the new DSL from the Resources folder.
+        /// </summary>
+        /// <param name="path">Resource path of the script without extension.</param>
+        public void LoadFileV2(string path)
+        {
+            if (path.EndsWith(".txt"))
+                path = path.Substring(0, path.Length - 4);
+            var asset = Resources.Load<TextAsset>(path);
+            if (asset == null)
+                return;
+            var parsed = NewTextScriptParser.ParseString(asset.text);
+            MergeEvents(parsed);
+        }
+
+        /// <summary>
         /// Loads script events from a string.
         /// </summary>
         /// <param name="script">Script contents in the DSL format.</param>
         public void LoadFromString(string script)
         {
             var loaded = TextScriptParser.ParseString(script);
+            MergeEvents(loaded);
+        }
+
+        /// <summary>
+        /// Loads events from a string written in the new block-style DSL.
+        /// </summary>
+        /// <param name="script">Script contents in the new DSL format.</param>
+        public void LoadFromStringV2(string script)
+        {
+            var loaded = NewTextScriptParser.ParseString(script);
             MergeEvents(loaded);
         }
 
