@@ -139,6 +139,12 @@ namespace RuntimeScripting
 
             private string ParseArgument()
             {
+                if (current.Type == TokenType.String)
+                {
+                    var val = current.Value;
+                    Advance();
+                    return val;
+                }
                 if (current.Type == TokenType.Number)
                 {
                     var val = current.Value;
@@ -328,6 +334,20 @@ namespace RuntimeScripting
                     case '-': index++; return new Token(TokenType.Minus, "-");
                     case '*': index++; return new Token(TokenType.Star, "*");
                     case '/': index++; return new Token(TokenType.Slash, "/");
+                    case '"':
+                        index++;
+                        int startStr = index;
+                        while (index < text.Length && text[index] != '"')
+                        {
+                            if (text[index] == '\\' && index + 1 < text.Length)
+                                index += 2;
+                            else
+                                index++;
+                        }
+                        string str = text.Substring(startStr, index - startStr);
+                        if (index < text.Length && text[index] == '"')
+                            index++;
+                        return new Token(TokenType.String, str);
                 }
 
                 if (c == '&' && Peek(1) == '&')
@@ -400,6 +420,7 @@ namespace RuntimeScripting
             EOF,
             Identifier,
             Number,
+            String,
             LParen,
             RParen,
             Comma,

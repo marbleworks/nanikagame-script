@@ -123,6 +123,13 @@ namespace RuntimeScripting
                 // Allow arithmetic expressions in argument positions and also
                 // support plain identifiers that represent string parameters.
 
+                if (current.Type == TokenType.String)
+                {
+                    var str = current.Value;
+                    Advance();
+                    return str;
+                }
+
                 if (current.Type == TokenType.Identifier)
                 {
                     var id = current.Value;
@@ -289,6 +296,12 @@ namespace RuntimeScripting
 
             private string ParseArgument()
             {
+                if (current.Type == TokenType.String)
+                {
+                    var str = current.Value;
+                    Advance();
+                    return str;
+                }
                 if (current.Type == TokenType.Identifier)
                 {
                     var id = current.Value;
@@ -386,6 +399,20 @@ namespace RuntimeScripting
                     case '(': index++; return new Token(TokenType.LParen, "(");
                     case ')': index++; return new Token(TokenType.RParen, ")");
                     case ',': index++; return new Token(TokenType.Comma, ",");
+                    case '"':
+                        index++;
+                        int startStr = index;
+                        while (index < text.Length && text[index] != '"')
+                        {
+                            if (text[index] == '\\' && index + 1 < text.Length)
+                                index += 2;
+                            else
+                                index++;
+                        }
+                        string str = text.Substring(startStr, index - startStr);
+                        if (index < text.Length && text[index] == '"')
+                            index++;
+                        return new Token(TokenType.String, str);
                 }
 
                 if (char.IsDigit(c) || (c == '.' && index + 1 < text.Length && char.IsDigit(text[index + 1])))
@@ -442,6 +469,7 @@ namespace RuntimeScripting
             EOF,
             Number,
             Identifier,
+            String,
             Plus,
             Minus,
             Star,
