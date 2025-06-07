@@ -141,11 +141,10 @@ namespace RuntimeScripting
         /// <returns>Parameter instance.</returns>
         internal ActionParameter CreateParameter(ParsedAction pa)
         {
-            var param = new ActionParameter
-            {
-                ActionType = pa.ActionType,
-                FunctionName = pa.FunctionName
-            };
+            var param = new ActionParameter();
+            param.FunctionName = pa.ActionType == ActionType.CallFunction
+                ? pa.FunctionName
+                : pa.ActionType.ToString();
             param.Args.AddRange(pa.Args);
             return param;
         }
@@ -156,39 +155,51 @@ namespace RuntimeScripting
         /// <param name="param">Action parameter.</param>
         internal void ExecuteAction(ActionParameter param)
         {
-            switch (param.ActionType)
+            if (Enum.TryParse(param.FunctionName, out FunctionVoid fv))
             {
-                case ActionType.Attack:
-                    if (param.Args.Count > 0)
-                        Attack(ParseIntArg(param.Args[0]));
-                    break;
-                case ActionType.AddPlayerEffect:
-                    if (param.Args.Count > 2)
-                        AddPlayerEffect(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
-                    break;
-                case ActionType.AddPlayerEffectFor:
-                    if (param.Args.Count > 3)
-                        AddPlayerEffectFor(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]), ParseIntArg(param.Args[3]));
-                    break;
-                case ActionType.RemoveRandomDebuffPlayerEffect:
-                    if (param.Args.Count > 1)
-                        RemoveRandomDebuffPlayerEffect(param.Args[0], ParseIntArg(param.Args[1]));
-                    break;
-                case ActionType.AddMaxHp:
-                    if (param.Args.Count > 1)
-                        AddMaxHp(param.Args[0], ParseIntArg(param.Args[1]));
-                    break;
-                case ActionType.SetNanikaEffectFor:
-                    if (param.Args.Count > 2)
-                        SetNanikaEffectFor(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
-                    break;
-                case ActionType.SpawnNanika:
-                    if (param.Args.Count > 2)
-                        SpawnNanika(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
-                    break;
-                case ActionType.CallFunction:
-                    EvaluateFunctionFloat(param.FunctionName, param.Args.ToArray());
-                    break;
+                switch (fv)
+                {
+                    case FunctionVoid.Attack:
+                        if (param.Args.Count > 0)
+                            Attack(ParseIntArg(param.Args[0]));
+                        break;
+                    case FunctionVoid.AddPlayerEffect:
+                        if (param.Args.Count > 2)
+                            AddPlayerEffect(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
+                        break;
+                    case FunctionVoid.AddPlayerEffectFor:
+                        if (param.Args.Count > 3)
+                            AddPlayerEffectFor(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]), ParseIntArg(param.Args[3]));
+                        break;
+                    case FunctionVoid.RemoveRandomDebuffPlayerEffect:
+                        if (param.Args.Count > 1)
+                            RemoveRandomDebuffPlayerEffect(param.Args[0], ParseIntArg(param.Args[1]));
+                        break;
+                    case FunctionVoid.AddMaxHp:
+                        if (param.Args.Count > 1)
+                            AddMaxHp(param.Args[0], ParseIntArg(param.Args[1]));
+                        break;
+                    case FunctionVoid.SetNanikaEffectFor:
+                        if (param.Args.Count > 2)
+                            SetNanikaEffectFor(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
+                        break;
+                    case FunctionVoid.SpawnNanika:
+                        if (param.Args.Count > 2)
+                            SpawnNanika(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
+                        break;
+                }
+            }
+            else if (Enum.TryParse(param.FunctionName, out FunctionInt fi))
+            {
+                param.IntResult = EvaluateFunctionInt(fi, param.Args.ToArray());
+            }
+            else if (Enum.TryParse(param.FunctionName, out FunctionFloat ff))
+            {
+                param.FloatResult = EvaluateFunctionFloat(ff, param.Args.ToArray());
+            }
+            else
+            {
+                param.FloatResult = EvaluateFunctionFloat(param.FunctionName, param.Args.ToArray());
             }
         }
 
@@ -214,6 +225,20 @@ namespace RuntimeScripting
         SetNanikaEffectFor,
         SpawnNanika,
         CallFunction
+    }
+
+    /// <summary>
+    /// Functions that perform actions and return no value.
+    /// </summary>
+    public enum FunctionVoid
+    {
+        Attack,
+        AddPlayerEffect,
+        AddPlayerEffectFor,
+        RemoveRandomDebuffPlayerEffect,
+        AddMaxHp,
+        SetNanikaEffectFor,
+        SpawnNanika
     }
     
     /// <summary>
