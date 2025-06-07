@@ -141,10 +141,10 @@ namespace RuntimeScripting
         /// <returns>Parameter instance.</returns>
         internal ActionParameter CreateParameter(ParsedAction pa)
         {
-            var param = new ActionParameter();
-            param.FunctionName = pa.ActionType == ActionType.CallFunction
-                ? pa.FunctionName
-                : pa.ActionType.ToString();
+            var param = new ActionParameter
+            {
+                FunctionName = pa.FunctionName
+            };
             param.Args.AddRange(pa.Args);
             return param;
         }
@@ -212,20 +212,6 @@ namespace RuntimeScripting
         }
     }
     
-    /// <summary>
-    /// Enumeration of built-in action types.
-    /// </summary>
-    public enum ActionType
-    {
-        Attack,
-        AddPlayerEffect,
-        AddPlayerEffectFor,
-        RemoveRandomDebuffPlayerEffect,
-        AddMaxHp,
-        SetNanikaEffectFor,
-        SpawnNanika,
-        CallFunction
-    }
 
     /// <summary>
     /// Functions that perform actions and return no value.
