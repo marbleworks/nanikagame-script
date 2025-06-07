@@ -5,7 +5,6 @@ namespace RuntimeScripting
     /// </summary>
     public class ActionParameter
     {
-        public ActionType ActionType;
         public string FunctionName;
         public System.Collections.Generic.List<string> Args = new System.Collections.Generic.List<string>();
     }

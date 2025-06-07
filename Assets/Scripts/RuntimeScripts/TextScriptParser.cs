@@ -205,20 +205,7 @@ namespace RuntimeScripting
                 foreach (var act in actions)
                 {
                     var pa = new ParsedAction();
-                    if (TryParseActionType(act.name, out var at))
-                    {
-                        pa.ActionType = at;
-                    }
-                    else if (Enum.TryParse<FunctionInt>(act.name, out _) || Enum.TryParse<FunctionFloat>(act.name, out _))
-                    {
-                        pa.ActionType = ActionType.CallFunction;
-                        pa.FunctionName = act.name;
-                    }
-                    else
-                    {
-                        pa.ActionType = ActionType.CallFunction;
-                        pa.FunctionName = act.name;
-                    }
+                    pa.FunctionName = act.name;
                     pa.Args.AddRange(act.args);
                     if (mods != null)
                     {
@@ -377,11 +364,6 @@ namespace RuntimeScripting
                     }
                 }
                 return dict;
-            }
-
-            private bool TryParseActionType(string name, out ActionType at)
-            {
-                return Enum.TryParse(name, out at);
             }
 
             private void ApplyCondition(ParsedAction pa)
