@@ -43,8 +43,8 @@ namespace RuntimeScripting
                 if (string.IsNullOrEmpty(parsed.CanExecuteRaw) ||
                     ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
                 {
-                    var param = controller.CreateParameter(parsed);
-                    controller.ExecuteActionImmediately(param);
+                    var param = controller.GameLogic.CreateParameter(parsed);
+                    controller.GameLogic.ExecuteAction(param);
                     executedCount++;
                 }
 
