@@ -99,8 +99,8 @@ namespace RuntimeScripting
                 }
                 else
                 {
-                    var param = CreateParameter(pa);
-                    ExecuteActionImmediately(param);
+                    var param = GameLogic.CreateParameter(pa);
+                    GameLogic.ExecuteAction(param);
                 }
             }
         }
@@ -111,121 +111,6 @@ namespace RuntimeScripting
             scheduled.Remove(sa);
         }
 
-        internal void ExecuteActionImmediately(ActionParameter param)
-        {
-            switch (param.ActionType)
-            {
-                case ActionType.Attack:
-                    GameLogic.Attack(param.IntValue);
-                    break;
-                case ActionType.AddPlayerEffect:
-                    GameLogic.AddPlayerEffect(param.Targets, param.StringValue, param.IntValue);
-                    break;
-                case ActionType.AddPlayerEffectFor:
-                    GameLogic.AddPlayerEffectFor(param.Targets, param.StringValue, param.IntValue, param.ExtraValue);
-                    break;
-                case ActionType.RemoveRandomDebuffPlayerEffect:
-                    GameLogic.RemoveRandomDebuffPlayerEffect(param.Targets, param.IntValue);
-                    break;
-                case ActionType.AddMaxHp:
-                    GameLogic.AddMaxHp(param.Targets, param.IntValue);
-                    break;
-                case ActionType.SetNanikaEffectFor:
-                    GameLogic.SetNanikaEffectFor(param.Targets, param.StringValue, param.IntValue);
-                    break;
-                case ActionType.SpawnNanika:
-                    GameLogic.SpawnNanika(param.Targets, param.StringValue, param.IntValue);
-                    break;
-                case ActionType.CallFunction:
-                    GameLogic.EvaluateFunctionFloat(param.FunctionName, param.Args.ToArray());
-                    break;
-            }
-        }
-
-        internal ActionParameter CreateParameter(ParsedAction pa)
-        {
-            var param = new ActionParameter
-            {
-                ActionType = pa.ActionType
-            };
-
-            switch (pa.ActionType)
-            {
-                case ActionType.Attack:
-                    if (pa.Args.Count > 0)
-                        param.IntValue = ParseIntArg(pa.Args[0]);
-                    break;
-                case ActionType.AddPlayerEffect:
-                    if (pa.Args.Count > 0)
-                        param.Targets = pa.Args[0];
-                    if (pa.Args.Count > 1)
-                        param.StringValue = pa.Args[1];
-                    if (pa.Args.Count > 2)
-                        param.IntValue = ParseIntArg(pa.Args[2]);
-                    break;
-                case ActionType.AddPlayerEffectFor:
-                    if (pa.Args.Count > 0)
-                        param.Targets = pa.Args[0];
-                    if (pa.Args.Count > 1)
-                        param.StringValue = pa.Args[1];
-                    if (pa.Args.Count > 2)
-                        param.IntValue = ParseIntArg(pa.Args[2]);
-                    if (pa.Args.Count > 3)
-                        param.ExtraValue = ParseIntArg(pa.Args[3]);
-                    break;
-                case ActionType.RemoveRandomDebuffPlayerEffect:
-                    if (pa.Args.Count > 0)
-                        param.Targets = pa.Args[0];
-                    if (pa.Args.Count > 1)
-                        param.IntValue = ParseIntArg(pa.Args[1]);
-                    break;
-                case ActionType.AddMaxHp:
-                    if (pa.Args.Count > 0)
-                        param.Targets = pa.Args[0];
-                    if (pa.Args.Count > 1)
-                        param.IntValue = ParseIntArg(pa.Args[1]);
-                    break;
-                case ActionType.SetNanikaEffectFor:
-                    if (pa.Args.Count > 0)
-                        param.Targets = pa.Args[0];
-                    if (pa.Args.Count > 1)
-                        param.StringValue = pa.Args[1];
-                    if (pa.Args.Count > 2)
-                        param.IntValue = ParseIntArg(pa.Args[2]);
-                    break;
-                case ActionType.SpawnNanika:
-                    if (pa.Args.Count > 0)
-                        param.Targets = pa.Args[0];
-                    if (pa.Args.Count > 1)
-                        param.StringValue = pa.Args[1];
-                    if (pa.Args.Count > 2)
-                        param.IntValue = ParseIntArg(pa.Args[2]);
-                    break;
-                case ActionType.CallFunction:
-                    param.FunctionName = pa.FunctionName;
-                    param.Args.AddRange(pa.Args);
-                    break;
-                default:
-                    if (pa.Args.Count > 0)
-                        param.Targets = pa.Args[0];
-                    if (pa.Args.Count > 1)
-                        param.StringValue = pa.Args[1];
-                    if (pa.Args.Count > 2)
-                        param.IntValue = ParseIntArg(pa.Args[2]);
-                    if (pa.Args.Count > 3)
-                        param.ExtraValue = ParseIntArg(pa.Args[3]);
-                    break;
-            }
-
-            return param;
-        }
-
-        private int ParseIntArg(string arg)
-        {
-            if (int.TryParse(arg, out var value))
-                return value;
-
-            return IntExpressionEvaluator.Evaluate(arg, GameLogic);
-        }
+        
     }
 }

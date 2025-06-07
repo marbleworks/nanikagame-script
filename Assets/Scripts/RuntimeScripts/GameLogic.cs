@@ -133,5 +133,71 @@ namespace RuntimeScripting
         {
             Debug.Log($"Spawn nanika {nanikaId} at {spawnPosId} for {targets}");
         }
+
+        /// <summary>
+        /// Creates an executable parameter object from a parsed action.
+        /// </summary>
+        /// <param name="pa">Parsed action.</param>
+        /// <returns>Parameter instance.</returns>
+        internal ActionParameter CreateParameter(ParsedAction pa)
+        {
+            var param = new ActionParameter
+            {
+                ActionType = pa.ActionType,
+                FunctionName = pa.FunctionName
+            };
+            param.Args.AddRange(pa.Args);
+            return param;
+        }
+
+        /// <summary>
+        /// Executes a pre-parsed action.
+        /// </summary>
+        /// <param name="param">Action parameter.</param>
+        internal void ExecuteAction(ActionParameter param)
+        {
+            switch (param.ActionType)
+            {
+                case ActionType.Attack:
+                    if (param.Args.Count > 0)
+                        Attack(ParseIntArg(param.Args[0]));
+                    break;
+                case ActionType.AddPlayerEffect:
+                    if (param.Args.Count > 2)
+                        AddPlayerEffect(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
+                    break;
+                case ActionType.AddPlayerEffectFor:
+                    if (param.Args.Count > 3)
+                        AddPlayerEffectFor(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]), ParseIntArg(param.Args[3]));
+                    break;
+                case ActionType.RemoveRandomDebuffPlayerEffect:
+                    if (param.Args.Count > 1)
+                        RemoveRandomDebuffPlayerEffect(param.Args[0], ParseIntArg(param.Args[1]));
+                    break;
+                case ActionType.AddMaxHp:
+                    if (param.Args.Count > 1)
+                        AddMaxHp(param.Args[0], ParseIntArg(param.Args[1]));
+                    break;
+                case ActionType.SetNanikaEffectFor:
+                    if (param.Args.Count > 2)
+                        SetNanikaEffectFor(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
+                    break;
+                case ActionType.SpawnNanika:
+                    if (param.Args.Count > 2)
+                        SpawnNanika(param.Args[0], param.Args[1], ParseIntArg(param.Args[2]));
+                    break;
+                case ActionType.CallFunction:
+                    EvaluateFunctionFloat(param.FunctionName, param.Args.ToArray());
+                    break;
+            }
+        }
+
+        private int ParseIntArg(string arg)
+        {
+            if (int.TryParse(arg, out var value))
+                return value;
+
+            return IntExpressionEvaluator.Evaluate(arg, this);
+        }
     }
 }
