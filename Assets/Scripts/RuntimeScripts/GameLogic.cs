@@ -200,4 +200,41 @@ namespace RuntimeScripting
             return IntExpressionEvaluator.Evaluate(arg, this);
         }
     }
+    
+    /// <summary>
+    /// Enumeration of built-in action types.
+    /// </summary>
+    public enum ActionType
+    {
+        Attack,
+        AddPlayerEffect,
+        AddPlayerEffectFor,
+        RemoveRandomDebuffPlayerEffect,
+        AddMaxHp,
+        SetNanikaEffectFor,
+        SpawnNanika,
+        CallFunction
+    }
+    
+    /// <summary>
+    /// Functions returning integer values.
+    /// </summary>
+    public enum FunctionInt
+    {
+        HpMin,
+        ComboCount,
+        Shield,
+        NanikaCount,
+        ResourceCount,
+        UseResource,
+    }
+
+    /// <summary>
+    /// Functions returning floating point values.
+    /// </summary>
+    public enum FunctionFloat
+    {
+        Interval,
+        Double
+    }
 }

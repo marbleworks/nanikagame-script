@@ -26,19 +26,4 @@ namespace RuntimeScripting
         /// </summary>
         public string WhileRaw { get; set; }
     }
-
-    /// <summary>
-    /// Enumeration of built-in action types.
-    /// </summary>
-    public enum ActionType
-    {
-        Attack,
-        AddPlayerEffect,
-        AddPlayerEffectFor,
-        RemoveRandomDebuffPlayerEffect,
-        AddMaxHp,
-        SetNanikaEffectFor,
-        SpawnNanika,
-        CallFunction
-    }
 }
