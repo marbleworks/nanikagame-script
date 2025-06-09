@@ -15,6 +15,8 @@ namespace RuntimeScripting
         #region Fields
         private int _comboCount;
         private int _resourceCount;
+        private readonly Dictionary<string, Action<ActionParameter>> _actions = new();
+        private readonly Dictionary<string, Func<ActionParameter, float>> _functions = new();
         #endregion
 
         #region Public Functions
@@ -50,9 +52,36 @@ namespace RuntimeScripting
         public float Double(float value) => value * 2f;
         #endregion
 
+        #region Registration
+        /// <summary>
+        /// Registers a custom action that can be invoked from scripts.
+        /// </summary>
+        /// <param name="name">Function name used in the DSL.</param>
+        /// <param name="action">Delegate to execute when called.</param>
+        public void RegisterAction(string name, Action<ActionParameter> action)
+        {
+            if (string.IsNullOrEmpty(name) || action == null) return;
+            _actions[name] = action;
+        }
+
+        /// <summary>
+        /// Registers a custom numeric function for expression evaluation.
+        /// </summary>
+        /// <param name="name">Function name used in the DSL.</param>
+        /// <param name="func">Delegate that returns a numeric result.</param>
+        public void RegisterFunction(string name, Func<ActionParameter, float> func)
+        {
+            if (string.IsNullOrEmpty(name) || func == null) return;
+            _functions[name] = func;
+        }
+        #endregion
+
         #region Evaluate Functions
         public int EvaluateFunctionInt(ActionParameter param)
         {
+            if (_functions.TryGetValue(param.FunctionName, out var func))
+                return (int)Math.Floor(func(param));
+
             if (!Enum.TryParse(param.FunctionName, out FunctionInt f)) return 0;
             switch (f)
             {
@@ -80,6 +109,9 @@ namespace RuntimeScripting
 
         public float EvaluateFunctionFloat(ActionParameter param)
         {
+            if (_functions.TryGetValue(param.FunctionName, out var func))
+                return func(param);
+
             if (!Enum.TryParse(param.FunctionName, out FunctionFloat f)) return 0f;
             switch (f)
             {
@@ -95,6 +127,9 @@ namespace RuntimeScripting
         public float EvaluateFunctionFloat(string func, List<string> args)
         {
             var param = CreateParameter(func, args);
+
+            if (_functions.TryGetValue(func, out var custom))
+                return custom(param);
 
             if (Enum.TryParse(func, out FunctionFloat _))
                 return EvaluateFunctionFloat(param);
@@ -153,6 +188,12 @@ namespace RuntimeScripting
 
         private void ExecuteAction(ActionParameter param)
         {
+            if (_actions.TryGetValue(param.FunctionName, out var action))
+            {
+                action(param);
+                return;
+            }
+
             if (!Enum.TryParse(param.FunctionName, out FunctionVoid fv)) return;
             switch (fv)
             {
