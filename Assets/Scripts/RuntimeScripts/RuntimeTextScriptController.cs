@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,106 +9,118 @@ namespace RuntimeScripting
     /// </summary>
     public class RuntimeTextScriptController : MonoBehaviour
     {
-        private readonly Dictionary<string, ParsedEvent> events = new Dictionary<string, ParsedEvent>();
-        private readonly List<ScheduledAction> scheduled = new List<ScheduledAction>();
-        private readonly List<Coroutine> running = new List<Coroutine>();
-
-        internal GameLogic GameLogic;
-
-        public void SetGameLogic(GameLogic gameLogic)
-        {
-            GameLogic = gameLogic;
-        }
+        private readonly Dictionary<string, ParsedEvent> _events = new();
+        private readonly List<ScheduledAction> _scheduled = new();
+        private readonly List<Coroutine> _running = new();
 
         /// <summary>
-        /// Loads all script files written in the new DSL from a Resources folder.
+        /// Gets the reference to the GameLogic instance.
         /// </summary>
-        /// <param name="folder">Resources subfolder containing the scripts.</param>
+        public GameLogic GameLogic { get; private set; }
+
+        /// <summary>
+        /// Initializes the controller with the specified GameLogic.
+        /// </summary>
+        /// <param name="gameLogic">The GameLogic instance to use.</param>
+        public void Initialize(GameLogic gameLogic) => GameLogic = gameLogic;
+
+        /// <summary>
+        /// Loads all script files from a Resources subfolder and merges their events.
+        /// </summary>
+        /// <param name="folder">The subfolder under Resources containing TextAsset scripts.</param>
         public void Load(string folder)
         {
-            var loaded = new Dictionary<string, ParsedEvent>();
             var assets = Resources.LoadAll<TextAsset>(folder);
+            var loadedEvents = new Dictionary<string, ParsedEvent>();
+
             foreach (var asset in assets)
             {
                 var parsed = TextScriptParser.ParseString(asset.text);
-                foreach (var kv in parsed)
+                foreach (var kvp in parsed)
                 {
-                    if (!loaded.ContainsKey(kv.Key))
-                        loaded[kv.Key] = kv.Value;
+                    if (loadedEvents.TryGetValue(kvp.Key, out var existing))
+                        existing.Actions.AddRange(kvp.Value.Actions);
                     else
-                        loaded[kv.Key].Actions.AddRange(kv.Value.Actions);
+                        loadedEvents.Add(kvp.Key, kvp.Value);
                 }
             }
-            MergeEvents(loaded);
+
+            MergeEvents(loadedEvents);
         }
 
         /// <summary>
-        /// Loads a single script file written in the new DSL from the Resources folder.
+        /// Loads a single script file from Resources and merges its events.
         /// </summary>
-        /// <param name="path">Resource path of the script without extension.</param>
+        /// <param name="path">Resource path of the script (without file extension).</param>
         public void LoadFile(string path)
         {
-            if (path.EndsWith(".txt"))
-                path = path.Substring(0, path.Length - 4);
-            var asset = Resources.Load<TextAsset>(path);
-            if (asset == null)
-                return;
+            var resourcePath = path.EndsWith(".txt") ? path[..^4] : path;
+            var asset = Resources.Load<TextAsset>(resourcePath);
+            if (asset == null) return;
+
             var parsed = TextScriptParser.ParseString(asset.text);
             MergeEvents(parsed);
         }
 
         /// <summary>
-        /// Loads events from a string written in the new block-style DSL.
+        /// Loads script events from a raw DSL string and merges them.
         /// </summary>
-        /// <param name="script">Script contents in the new DSL format.</param>
+        /// <param name="script">The DSL script content as a string.</param>
         public void LoadFromString(string script)
         {
-            var loaded = TextScriptParser.ParseString(script);
-            MergeEvents(loaded);
+            var parsed = TextScriptParser.ParseString(script);
+            MergeEvents(parsed);
         }
 
-        private void MergeEvents(Dictionary<string, ParsedEvent> loaded)
-        {
-            events.Clear();
-            foreach (var kv in loaded)
-            {
-                if (!events.ContainsKey(kv.Key))
-                    events[kv.Key] = kv.Value;
-                else
-                    events[kv.Key].Actions.AddRange(kv.Value.Actions);
-            }
-        }
-
+        /// <summary>
+        /// Triggers the specified event, executing or scheduling its actions.
+        /// </summary>
+        /// <param name="eventName">The name of the event to trigger.</param>
         public void Trigger(string eventName)
         {
-            if (!events.TryGetValue(eventName, out var pe))
-                return;
+            if (!_events.TryGetValue(eventName, out var parsedEvent)) return;
 
-            foreach (var pa in pe.Actions)
+            foreach (var action in parsedEvent.Actions)
             {
-                if (!string.IsNullOrEmpty(pa.Condition) && !ConditionEvaluator.Evaluate(pa.Condition, GameLogic))
-                    continue;
-
-                if (pa.Interval > 0 || !string.IsNullOrEmpty(pa.IntervalFuncRaw))
+                if (!string.IsNullOrEmpty(action.Condition) &&
+                    !ConditionEvaluator.Evaluate(action.Condition, GameLogic))
                 {
-                    var sa = new ScheduledAction(pa, this);
-                    scheduled.Add(sa);
-                    var co = StartCoroutine(RunScheduledAction(sa));
-                    running.Add(co);
+                    continue;
+                }
+
+                if (action.Interval > 0 || !string.IsNullOrEmpty(action.IntervalFuncRaw))
+                {
+                    var scheduled = new ScheduledAction(action, this);
+                    _scheduled.Add(scheduled);
+                    _running.Add(StartCoroutine(RunScheduledAction(scheduled)));
                 }
                 else
                 {
-                    GameLogic.ExecuteAction(pa);
+                    GameLogic.ExecuteAction(action);
                 }
             }
         }
 
-        private IEnumerator RunScheduledAction(ScheduledAction sa)
+        private IEnumerator RunScheduledAction(ScheduledAction scheduled)
         {
-            yield return sa.ExecuteCoroutine();
-            scheduled.Remove(sa);
+            yield return scheduled.ExecuteCoroutine();
+            _scheduled.Remove(scheduled);
         }
 
-        
+        /// <summary>
+        /// Merges the given events into the internal event dictionary.
+        /// </summary>
+        /// <param name="loaded">A dictionary of event names to ParsedEvent objects.</param>
+        private void MergeEvents(Dictionary<string, ParsedEvent> loaded)
+        {
+            _events.Clear();
+            foreach (var kvp in loaded)
+            {
+                if (_events.TryGetValue(kvp.Key, out var existing))
+                    existing.Actions.AddRange(kvp.Value.Actions);
+                else
+                    _events.Add(kvp.Key, kvp.Value);
+            }
+        }
     }
 }
