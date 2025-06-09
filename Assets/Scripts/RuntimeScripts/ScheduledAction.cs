@@ -31,11 +31,18 @@ namespace RuntimeScripting
         {
             elapsed = 0f;
             nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
+            var start = Time.time;
 
             while (BasicContinue())
             {
-                yield return new WaitForSeconds(nextTime);
-                elapsed += nextTime;
+                var targetTime = start + elapsed + nextTime;
+                var wait = Mathf.Max(0f, targetTime - Time.time);
+                if (wait > 0f)
+                    yield return new WaitForSeconds(wait);
+                else
+                    yield return null;
+
+                elapsed = Time.time - start;
 
                 if (!ShouldContinueWithWhile())
                     yield break;
