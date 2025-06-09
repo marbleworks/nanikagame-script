@@ -99,8 +99,7 @@ namespace RuntimeScripting
                 }
                 else
                 {
-                    var param = GameLogic.CreateParameter(pa);
-                    GameLogic.ExecuteAction(param);
+                    GameLogic.ExecuteAction(pa);
                 }
             }
         }

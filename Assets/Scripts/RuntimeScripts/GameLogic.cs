@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -50,9 +51,10 @@ namespace RuntimeScripting
         #endregion
 
         #region Evaluate Functions
-        public int EvaluateFunctionInt(FunctionInt func, string[] args)
+        public int EvaluateFunctionInt(ActionParameter param)
         {
-            switch (func)
+            if (!Enum.TryParse(param.FunctionName, out FunctionInt f)) return 0;
+            switch (f)
             {
                 case FunctionInt.HpMin:
                     return HpMin();
@@ -61,40 +63,41 @@ namespace RuntimeScripting
                 case FunctionInt.Shield:
                     return Shield();
                 case FunctionInt.NanikaCount:
-                    return NanikaCount(args.FirstOrDefault() ?? string.Empty);
+                    return NanikaCount(param.Args.FirstOrDefault() ?? string.Empty);
                 case FunctionInt.ResourceCount:
-                    return ResourceCount(args.FirstOrDefault() ?? string.Empty);
+                    return ResourceCount(param.Args.FirstOrDefault() ?? string.Empty);
                 case FunctionInt.UseResource:
-                    return UseResource(args[0], int.Parse(args[1])) ? 1 : 0;
+                    return UseResource(param.Args[0], int.Parse(param.Args[1])) ? 1 : 0;
                 default:
                     return 0;
             }
         }
 
-        public int EvaluateFunctionInt(string func, string[] args)
-            => Enum.TryParse(func, out FunctionInt f)
-                ? EvaluateFunctionInt(f, args)
-                : 0;
-
-        public float EvaluateFunctionFloat(FunctionFloat func, string[] args)
+        public int EvaluateFunctionInt(string func, List<string> args)
         {
-            switch (func)
+            return EvaluateFunctionInt(CreateParameter(func, args));
+        }
+
+        public float EvaluateFunctionFloat(ActionParameter param)
+        {
+            if (!Enum.TryParse(param.FunctionName, out FunctionFloat f)) return 0f;
+            switch (f)
             {
-                case FunctionFloat.Interval when args.Length > 0 && float.TryParse(args[0], out var v):
+                case FunctionFloat.Interval when param.Args.Count > 0 && float.TryParse(param.Args[0], out var v):
                     return Interval(v);
-                case FunctionFloat.Double when args.Length > 0 && float.TryParse(args[0], out var d):
+                case FunctionFloat.Double when param.Args.Count > 0 && float.TryParse(param.Args[0], out var d):
                     return Double(d);
                 default:
                     return 0f;
             }
         }
 
-        public float EvaluateFunctionFloat(string func, string[] args)
+        public float EvaluateFunctionFloat(string func, List<string> args)
         {
-            if (Enum.TryParse(func, out FunctionFloat ff))
-                return EvaluateFunctionFloat(ff, args);
-            if (Enum.TryParse(func, out FunctionInt fi))
-                return EvaluateFunctionInt(fi, args);
+            if (Enum.TryParse(func, out FunctionFloat _))
+                return EvaluateFunctionFloat(func, args);
+            if (Enum.TryParse(func, out FunctionInt _))
+                return EvaluateFunctionInt(func, args);
             return 0f;
         }
         #endregion
@@ -122,26 +125,31 @@ namespace RuntimeScripting
         #endregion
 
         #region Execution
-        internal ActionParameter CreateParameter(ParsedAction pa)
+
+        private static ActionParameter CreateParameter(ParsedAction pa)
+        {
+            return CreateParameter(pa.FunctionName, pa.Args);
+        }
+        
+        private static ActionParameter CreateParameter(string func, List<string> args)
         {
             var param = new ActionParameter
             {
-                FunctionName = pa.FunctionName
+                FunctionName = func,
+                Args = args
             };
-            param.Args.AddRange(pa.Args);
+            
             return param;
         }
 
-        internal void ExecuteAction(ActionParameter param)
+        internal void ExecuteAction(ParsedAction pa)
         {
-            if (Enum.TryParse(param.FunctionName, out FunctionVoid fv))
-            {
-                ExecuteVoidFunction(fv, param);
-            }
+            ExecuteAction(CreateParameter(pa));
         }
 
-        private void ExecuteVoidFunction(FunctionVoid fv, ActionParameter param)
+        private void ExecuteAction(ActionParameter param)
         {
+            if (!Enum.TryParse(param.FunctionName, out FunctionVoid fv)) return;
             switch (fv)
             {
                 case FunctionVoid.Attack:

@@ -129,9 +129,8 @@ namespace RuntimeScripting
                         }
                     }
                     Expect(TokenType.RParen);
-                    if (Enum.TryParse(func, out FunctionInt f))
-                        return gameLogic.EvaluateFunctionInt(f, args.ToArray());
-                    return gameLogic.EvaluateFunctionInt(func, args.ToArray());
+                    
+                    return gameLogic.EvaluateFunctionInt(func, args);
                 }
 
                 throw new Exception("Unexpected token" + current.Type);
@@ -170,11 +169,7 @@ namespace RuntimeScripting
                             }
                         }
                         Expect(TokenType.RParen);
-                        int value;
-                        if (Enum.TryParse(id, out FunctionInt fi))
-                            value = gameLogic.EvaluateFunctionInt(fi, args.ToArray());
-                        else
-                            value = gameLogic.EvaluateFunctionInt(id, args.ToArray());
+                        var value = gameLogic.EvaluateFunctionInt(id, args);
 
                         // Continue parsing if this value participates in an arithmetic expression
                         value = ContinueTerm(value);
@@ -260,13 +255,8 @@ namespace RuntimeScripting
                         }
                     }
                     Expect(TokenType.RParen);
-                    int value;
-                    if (Enum.TryParse(func, out FunctionInt fi))
-                        value = gameLogic.EvaluateFunctionInt(fi, args.ToArray());
-                    else
-                        value = gameLogic.EvaluateFunctionInt(func, args.ToArray());
 
-                    return value;
+                    return gameLogic.EvaluateFunctionInt(func, args);
                 }
 
                 throw new Exception("Invalid integer factor");
@@ -301,9 +291,7 @@ namespace RuntimeScripting
 
             private static bool IsComparisonOperator(TokenType type)
             {
-                return type == TokenType.Less || type == TokenType.LessEqual ||
-                       type == TokenType.Greater || type == TokenType.GreaterEqual ||
-                       type == TokenType.Equal;
+                return type is TokenType.Less or TokenType.LessEqual or TokenType.Greater or TokenType.GreaterEqual or TokenType.Equal;
             }
         }
 
