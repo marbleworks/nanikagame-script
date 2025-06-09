@@ -32,11 +32,11 @@ namespace RuntimeScripting
             elapsed = 0f;
             nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
             var start = Time.time;
+            var nextExecution = start + nextTime;
 
             while (BasicContinue())
             {
-                var targetTime = start + elapsed + nextTime;
-                var wait = Mathf.Max(0f, targetTime - Time.time);
+                var wait = Mathf.Max(0f, nextExecution - Time.time);
                 if (wait > 0f)
                     yield return new WaitForSeconds(wait);
                 else
@@ -55,6 +55,7 @@ namespace RuntimeScripting
                 }
 
                 nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
+                nextExecution += nextTime;
             }
         }
 
