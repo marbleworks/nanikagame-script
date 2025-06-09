@@ -22,15 +22,15 @@ namespace RuntimeScripting
 
         private class Parser
         {
-            private readonly string text;
-            private int index;
-            private readonly Dictionary<string, ParsedEvent> events = new Dictionary<string, ParsedEvent>();
-            private readonly Stack<string> conditionStack = new Stack<string>();
-            private string currentEvent;
+            private readonly string _text;
+            private int _index;
+            private readonly Dictionary<string, ParsedEvent> _events = new();
+            private readonly Stack<string> _conditionStack = new();
+            private string _currentEvent;
 
             public Parser(string text)
             {
-                this.text = text;
+                _text = text;
             }
 
             public Dictionary<string, ParsedEvent> Parse()
@@ -44,11 +44,11 @@ namespace RuntimeScripting
                     else
                     {
                         // ignore unexpected characters
-                        index++;
+                        _index++;
                     }
                 }
 
-                return events;
+                return _events;
             }
 
             private void ParseEventSection()
@@ -56,12 +56,13 @@ namespace RuntimeScripting
                 Expect('[');
                 var name = ReadUntil(']');
                 Expect(']');
-                currentEvent = name.Trim();
-                if (!events.TryGetValue(currentEvent, out var pe))
+                _currentEvent = name.Trim();
+                if (!_events.TryGetValue(_currentEvent, out var pe))
                 {
-                    pe = new ParsedEvent { EventName = currentEvent };
-                    events.Add(currentEvent, pe);
+                    pe = new ParsedEvent {EventName = _currentEvent};
+                    _events.Add(_currentEvent, pe);
                 }
+
                 SkipLine();
                 while (SkipWhite())
                 {
@@ -98,7 +99,7 @@ namespace RuntimeScripting
                 SkipWhite();
                 Expect('{');
                 var accumulated = expr.Trim();
-                conditionStack.Push(accumulated);
+                _conditionStack.Push(accumulated);
                 SkipWhite();
                 while (SkipWhite() && !StartsWith("}"))
                 {
@@ -120,8 +121,9 @@ namespace RuntimeScripting
                         SkipLine();
                     }
                 }
+
                 Expect('}');
-                conditionStack.Pop();
+                _conditionStack.Pop();
                 SkipWhite();
 
                 // Handle any number of else-if clauses and a final else
@@ -129,24 +131,24 @@ namespace RuntimeScripting
                 {
                     ExpectString("else");
                     SkipWhite();
-                    string cond = null;
-                    bool hasElseIf = false;
+                    var hasElseIf = false;
                     if (StartsWith("if"))
                     {
                         hasElseIf = true;
                         ExpectString("if");
                         SkipWhite();
                         Expect('(');
-                        cond = ReadEnclosed('(', ')');
+                        var cond = ReadEnclosed('(', ')');
                         Expect(')');
                         var trimmed = cond.Trim();
-                        conditionStack.Push($"!({accumulated}) && ({trimmed})");
+                        _conditionStack.Push($"!({accumulated}) && ({trimmed})");
                         accumulated = $"({accumulated}) || ({trimmed})";
                     }
                     else
                     {
-                        conditionStack.Push($"!({accumulated})");
+                        _conditionStack.Push($"!({accumulated})");
                     }
+
                     SkipWhite();
                     Expect('{');
                     SkipWhite();
@@ -170,8 +172,9 @@ namespace RuntimeScripting
                             SkipLine();
                         }
                     }
+
                     Expect('}');
-                    conditionStack.Pop();
+                    _conditionStack.Pop();
                     SkipWhite();
 
                     if (!hasElseIf)
@@ -198,14 +201,17 @@ namespace RuntimeScripting
                     Expect('}');
                     mods = ParseModifierList(modContent);
                 }
+
                 Expect(';');
                 SkipWhite();
 
                 var list = new List<ParsedAction>();
                 foreach (var act in actions)
                 {
-                    var pa = new ParsedAction();
-                    pa.FunctionName = act.name;
+                    var pa = new ParsedAction
+                    {
+                        FunctionName = act.name
+                    };
                     pa.Args.AddRange(act.args);
                     if (mods != null)
                     {
@@ -216,6 +222,7 @@ namespace RuntimeScripting
                             else
                                 pa.IntervalFuncRaw = iv;
                         }
+
                         if (mods.TryGetValue("period", out var pd))
                         {
                             if (float.TryParse(pd, out var period))
@@ -223,6 +230,7 @@ namespace RuntimeScripting
                             else
                                 pa.PeriodFuncRaw = pd;
                         }
+
                         if (mods.TryGetValue("canExecute", out var ce))
                             pa.CanExecuteRaw = ce;
                         if (mods.TryGetValue("maxCount", out var mc) && int.TryParse(mc, out var mcv))
@@ -230,19 +238,21 @@ namespace RuntimeScripting
                         if (mods.TryGetValue("while", out var wh))
                             pa.WhileRaw = wh;
                     }
+
                     list.Add(pa);
                 }
+
                 return list;
             }
 
-            private List<(string name, List<string> args)> ParseActionList(string text)
+            private static List<(string name, List<string> args)> ParseActionList(string text)
             {
                 var list = new List<(string, List<string>)>();
-                int depth = 0;
-                bool inString = false;
-                char stringChar = '\0';
-                int start = 0;
-                for (int i = 0; i <= text.Length; i++)
+                var depth = 0;
+                var inString = false;
+                var stringChar = '\0';
+                var start = 0;
+                for (var i = 0; i <= text.Length; i++)
                 {
                     if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
                     {
@@ -251,6 +261,7 @@ namespace RuntimeScripting
                         {
                             list.Add(ParseActionExpr(part));
                         }
+
                         start = i + 1;
                     }
                     else if (!inString && text[i] == '(')
@@ -268,34 +279,36 @@ namespace RuntimeScripting
                         }
                     }
                 }
+
                 return list;
             }
 
-            private (string name, List<string> args) ParseActionExpr(string text)
+            private static (string name, List<string> args) ParseActionExpr(string text)
             {
-                int open = text.IndexOf('(');
-                string name = open >= 0 ? text.Substring(0, open).Trim() : text.Trim();
+                var open = text.IndexOf('(');
+                var name = open >= 0 ? text[..open].Trim() : text.Trim();
                 var args = new List<string>();
                 if (open >= 0)
                 {
-                    int close = text.LastIndexOf(')');
+                    var close = text.LastIndexOf(')');
                     if (close > open)
                     {
                         var argContent = text.Substring(open + 1, close - open - 1);
                         args = ParseArgList(argContent);
                     }
                 }
+
                 return (name, args);
             }
 
-            private List<string> ParseArgList(string text)
+            private static List<string> ParseArgList(string text)
             {
                 var list = new List<string>();
-                int depth = 0;
-                bool inString = false;
-                char stringChar = '\0';
-                int start = 0;
-                for (int i = 0; i <= text.Length; i++)
+                var depth = 0;
+                var inString = false;
+                var stringChar = '\0';
+                var start = 0;
+                for (var i = 0; i <= text.Length; i++)
                 {
                     if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
                     {
@@ -319,31 +332,33 @@ namespace RuntimeScripting
                         }
                     }
                 }
+
                 return list;
             }
 
-            private Dictionary<string, string> ParseModifierList(string text)
+            private static Dictionary<string, string> ParseModifierList(string text)
             {
                 var dict = new Dictionary<string, string>();
-                int depth = 0;
-                bool inString = false;
-                char stringChar = '\0';
-                int start = 0;
-                for (int i = 0; i <= text.Length; i++)
+                var depth = 0;
+                var inString = false;
+                var stringChar = '\0';
+                var start = 0;
+                for (var i = 0; i <= text.Length; i++)
                 {
                     if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
                     {
                         var part = text.Substring(start, i - start).Trim();
                         if (part.Length > 0)
                         {
-                            int eq = part.IndexOf('=');
+                            var eq = part.IndexOf('=');
                             if (eq > 0)
                             {
-                                string key = part.Substring(0, eq).Trim();
-                                string value = part.Substring(eq + 1).Trim();
+                                var key = part[..eq].Trim();
+                                var value = part[(eq + 1)..].Trim();
                                 dict[key] = Unquote(value);
                             }
                         }
+
                         start = i + 1;
                     }
                     else if (!inString && text[i] == '(')
@@ -361,95 +376,96 @@ namespace RuntimeScripting
                         }
                     }
                 }
+
                 return dict;
             }
 
             private void ApplyCondition(ParsedAction pa)
             {
-                if (conditionStack.Count == 0)
+                if (_conditionStack.Count == 0)
                     return;
                 var sb = new StringBuilder();
-                foreach (var cond in conditionStack)
+                foreach (var cond in _conditionStack)
                 {
                     if (sb.Length > 0) sb.Insert(0, "(").Append(") && ");
                     sb.Insert(0, cond);
                 }
+
                 pa.Condition = sb.ToString();
             }
 
             // Helper reading utilities
             private char Peek()
             {
-                if (index >= text.Length) return '\0';
-                return text[index];
+                return _index >= _text.Length ? '\0' : _text[_index];
             }
 
             private bool StartsWith(string s)
             {
                 SkipWhite();
-                return string.Compare(text, index, s, 0, s.Length, StringComparison.Ordinal) == 0;
+                return string.Compare(_text, _index, s, 0, s.Length, StringComparison.Ordinal) == 0;
             }
 
             private bool SkipWhite()
             {
-                bool moved = false;
-                while (index < text.Length && char.IsWhiteSpace(text[index]))
+                while (_index < _text.Length && char.IsWhiteSpace(_text[_index]))
                 {
-                    index++;
-                    moved = true;
+                    _index++;
                 }
-                return index < text.Length;
+
+                return _index < _text.Length;
             }
 
             private void SkipLine()
             {
-                while (index < text.Length && text[index] != '\n') index++;
-                if (index < text.Length) index++;
+                while (_index < _text.Length && _text[_index] != '\n') _index++;
+                if (_index < _text.Length) _index++;
             }
 
             private void Expect(char c)
             {
                 SkipWhite();
-                if (index >= text.Length || text[index] != c)
-                    throw new Exception($"Expected '{c}' at {index}");
-                index++;
+                if (_index >= _text.Length || _text[_index] != c)
+                    throw new Exception($"Expected '{c}' at {_index}");
+                _index++;
             }
 
             private void ExpectString(string s)
             {
                 SkipWhite();
-                for (int i = 0; i < s.Length; i++)
+                for (var i = 0; i < s.Length; i++)
                 {
-                    if (index + i >= text.Length || text[index + i] != s[i])
-                        throw new Exception($"Expected '{s}' at {index}");
+                    if (_index + i >= _text.Length || _text[_index + i] != s[i])
+                        throw new Exception($"Expected '{s}' at {_index}");
                 }
-                index += s.Length;
+
+                _index += s.Length;
             }
 
             private string ReadUntil(char c)
             {
-                int start = index;
-                while (index < text.Length && text[index] != c) index++;
-                return text.Substring(start, index - start);
+                var start = _index;
+                while (_index < _text.Length && _text[_index] != c) _index++;
+                return _text.Substring(start, _index - start);
             }
 
             private string ReadEnclosed(char open, char close)
             {
-                int depth = 1;
-                int start = index;
-                bool inString = false;
-                char stringChar = '\0';
+                var depth = 1;
+                var start = _index;
+                var inString = false;
+                var stringChar = '\0';
 
-                while (index < text.Length)
+                while (_index < _text.Length)
                 {
-                    char ch = text[index];
+                    var ch = _text[_index];
 
                     if (inString)
                     {
-                        if (ch == '\\' && index + 1 < text.Length)
+                        if (ch == '\\' && _index + 1 < _text.Length)
                         {
                             // Skip escaped characters inside strings
-                            index += 2;
+                            _index += 2;
                             continue;
                         }
 
@@ -475,28 +491,29 @@ namespace RuntimeScripting
                             if (depth == 0)
                             {
                                 // Do not consume the closing character so that caller can verify it
-                                return text.Substring(start, index - start);
+                                return _text.Substring(start, _index - start);
                             }
                         }
                     }
 
-                    index++;
+                    _index++;
                 }
 
                 // If we reach here the text was malformed; return the remainder
-                return text.Substring(start);
+                return _text[start..];
             }
 
             private static string Unquote(string value)
             {
                 if (value.Length >= 2)
                 {
-                    if ((value[0] == '"' && value[value.Length - 1] == '"') ||
-                        (value[0] == '\'' && value[value.Length - 1] == '\''))
+                    if ((value[0] == '"' && value[^1] == '"') ||
+                        (value[0] == '\'' && value[^1] == '\''))
                     {
                         return value.Substring(1, value.Length - 2);
                     }
                 }
+
                 return value;
             }
         }
