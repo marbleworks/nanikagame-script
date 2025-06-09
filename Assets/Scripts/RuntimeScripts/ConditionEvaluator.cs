@@ -111,6 +111,12 @@ namespace RuntimeScripting
                 {
                     var v = float.Parse(current.Value, CultureInfo.InvariantCulture);
                     Advance();
+
+                    // Numbers can participate in arithmetic expressions such as
+                    // "2 + 2 * 2" within a condition. Continue parsing any
+                    // pending operators before returning the final value.
+                    v = ContinueTerm(v);
+                    v = ContinueExpression(v);
                     return v;
                 }
                 else if (current.Type == TokenType.Identifier)
