@@ -26,7 +26,6 @@ namespace RuntimeScripting
             private int _index;
             private readonly Dictionary<string, ParsedEvent> _events = new();
             private readonly Stack<string> _conditionStack = new();
-            private string _currentEvent;
 
             public Parser(string text)
             {
@@ -54,13 +53,12 @@ namespace RuntimeScripting
             private void ParseEventSection()
             {
                 Expect('[');
-                var name = ReadUntil(']');
+                var name = ReadUntil(']').Trim();
                 Expect(']');
-                _currentEvent = name.Trim();
-                if (!_events.TryGetValue(_currentEvent, out var pe))
+                if (!_events.TryGetValue(name, out var pe))
                 {
-                    pe = new ParsedEvent {EventName = _currentEvent};
-                    _events.Add(_currentEvent, pe);
+                    pe = new ParsedEvent {EventName = name};
+                    _events.Add(name, pe);
                 }
 
                 SkipLine();
