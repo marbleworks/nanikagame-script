@@ -94,10 +94,14 @@ namespace RuntimeScripting
 
         public float EvaluateFunctionFloat(string func, List<string> args)
         {
+            var param = CreateParameter(func, args);
+
             if (Enum.TryParse(func, out FunctionFloat _))
-                return EvaluateFunctionFloat(func, args);
+                return EvaluateFunctionFloat(param);
+
             if (Enum.TryParse(func, out FunctionInt _))
-                return EvaluateFunctionInt(func, args);
+                return EvaluateFunctionInt(param);
+
             return 0f;
         }
         #endregion
