@@ -18,11 +18,10 @@ namespace RuntimeScripting
 
             try
             {
-                var tokenizer = new Tokenizer(expression);
-                var parser = new Parser(tokenizer, gameLogic);
+                var parser = new Parser(new Tokenizer(expression), gameLogic);
                 return parser.ParseExpression();
             }
-            catch (Exception)
+            catch
             {
                 return false;
             }
@@ -30,411 +29,385 @@ namespace RuntimeScripting
 
         private class Parser
         {
-            private readonly Tokenizer tokenizer;
-            private Token current;
-            private readonly GameLogic gameLogic;
+            private Token _current;
+            private readonly Tokenizer _tokenizer;
+            private readonly GameLogic _gameLogic;
 
             public Parser(Tokenizer tokenizer, GameLogic gameLogic)
             {
-                this.tokenizer = tokenizer;
-                this.gameLogic = gameLogic;
-                current = tokenizer.Next();
+                _tokenizer = tokenizer;
+                _gameLogic = gameLogic;
+                _current = tokenizer.Next();
             }
 
             public bool ParseExpression()
             {
                 var result = ParseOr();
-                Expect(TokenType.EOF);
+                Expect(TokenType.Eof);
                 return result;
             }
 
             private bool ParseOr()
             {
-                var left = ParseAnd();
-                while (current.Type == TokenType.Or)
+                var result = ParseAnd();
+                while (Match(TokenType.Or))
                 {
-                    Advance();
                     var right = ParseAnd();
-                    left = left || right;
+                    result |= right;
                 }
-                return left;
+
+                return result;
             }
 
             private bool ParseAnd()
             {
-                var left = ParseUnary();
-                while (current.Type == TokenType.And)
+                var result = ParseUnary();
+                while (Match(TokenType.And))
                 {
-                    Advance();
                     var right = ParseUnary();
-                    left = left && right;
+                    result &= right;
                 }
-                return left;
+
+                return result;
             }
 
             private bool ParseUnary()
             {
-                if (current.Type == TokenType.Not)
+                if (Match(TokenType.Not))
                 {
-                    Advance();
                     return !ParseUnary();
                 }
+
                 return ParsePrimary();
             }
 
             private bool ParsePrimary()
             {
-                if (current.Type == TokenType.LParen)
+                if (Match(TokenType.LParen))
                 {
-                    Advance();
-                    var result = ParseOr();
+                    var inner = ParseOr();
                     Expect(TokenType.RParen);
-                    return result;
+                    return inner;
                 }
 
-                var leftValue = ParseValue();
-                if (IsComparisonOperator(current.Type))
+                var left = ParseArithmetic();
+                if (!IsComparisonOperator(_current.Type))
                 {
-                    var op = current.Type;
-                    Advance();
-                    var rightValue = ParseValue();
-                    return Compare(leftValue, op, rightValue);
+                    return Math.Abs(left) > float.Epsilon;
                 }
 
-                // If no comparison, non-zero is true
-                return Math.Abs(leftValue) > float.Epsilon;
+                var op = _current.Type;
+                Advance();
+                var right = ParseArithmetic();
+                return op switch
+                {
+                    TokenType.Less => left < right,
+                    TokenType.LessEqual => left <= right,
+                    TokenType.Greater => left > right,
+                    TokenType.GreaterEqual => left >= right,
+                    TokenType.Equal => Math.Abs(left - right) < float.Epsilon,
+                    _ => throw new InvalidOperationException($"Unknown operator {op}")
+                };
             }
 
-            private float ParseValue()
+            private float ParseArithmetic()
             {
-                if (current.Type == TokenType.Number)
+                var result = ParseTerm();
+                while (_current.Type is TokenType.Plus or TokenType.Minus)
                 {
-                    var v = float.Parse(current.Value, CultureInfo.InvariantCulture);
+                    var op = _current.Type;
                     Advance();
-
-                    // Numbers can participate in arithmetic expressions such as
-                    // "2 + 2 * 2" within a condition. Continue parsing any
-                    // pending operators before returning the final value.
-                    v = ContinueTerm(v);
-                    v = ContinueExpression(v);
-                    return v;
-                }
-                else if (current.Type == TokenType.Identifier)
-                {
-                    var func = current.Value;
-                    Advance();
-                    Expect(TokenType.LParen);
-                    var args = new List<string>();
-                    if (current.Type != TokenType.RParen)
-                    {
-                        args.Add(ParseArgument());
-                        while (current.Type == TokenType.Comma)
-                        {
-                            Advance();
-                            args.Add(ParseArgument());
-                        }
-                    }
-                    Expect(TokenType.RParen);
-                    
-                    return gameLogic.EvaluateFunctionFloat(func, args);
-                }
-
-                throw new Exception("Unexpected token" + current.Type);
-            }
-
-            private string ParseArgument()
-            {
-                if (current.Type == TokenType.String)
-                {
-                    var val = current.Value;
-                    Advance();
-                    return val;
-                }
-                if (current.Type == TokenType.Number)
-                {
-                    var val = current.Value;
-                    Advance();
-                    return val;
-                }
-
-                if (current.Type == TokenType.Identifier)
-                {
-                    var id = current.Value;
-                    Advance();
-                    if (current.Type == TokenType.LParen)
-                    {
-                        Expect(TokenType.LParen);
-                        var args = new List<string>();
-                        if (current.Type != TokenType.RParen)
-                        {
-                            args.Add(ParseArgument());
-                            while (current.Type == TokenType.Comma)
-                            {
-                                Advance();
-                                args.Add(ParseArgument());
-                            }
-                        }
-                        Expect(TokenType.RParen);
-                        var value = gameLogic.EvaluateFunctionFloat(id, args);
-
-                        // Continue parsing if this value participates in an arithmetic expression
-                        value = ContinueTerm(value);
-                        value = ContinueExpression(value);
-                        return value.ToString();
-                    }
-                    return id;
-                }
-
-                throw new Exception("Invalid argument");
-            }
-
-            private float ContinueTerm(float currentValue)
-            {
-                var left = currentValue;
-                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseFloatFactor();
-                    left = op == TokenType.Star ? left * right : left / right;
-                }
-                return left;
-            }
-
-            private float ContinueExpression(float currentValue)
-            {
-                var result = currentValue;
-                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseFloatTerm();
+                    var right = ParseTerm();
                     result = op == TokenType.Plus ? result + right : result - right;
                 }
+
                 return result;
             }
 
-            private float ParseFloatTerm()
+            private float ParseTerm()
             {
-                var left = ParseFloatFactor();
-                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
+                var result = ParseFactor();
+                while (_current.Type is TokenType.Star or TokenType.Slash)
                 {
-                    var op = current.Type;
+                    var op = _current.Type;
                     Advance();
-                    var right = ParseFloatFactor();
-                    left = op == TokenType.Star ? left * right : left / right;
+                    var right = ParseFactor();
+                    result = op == TokenType.Star ? result * right : result / right;
                 }
-                return left;
+
+                return result;
             }
 
-            private float ParseFloatFactor()
+            private float ParseFactor()
             {
-                if (current.Type == TokenType.Number)
+                if (_current.Type == TokenType.Number)
                 {
-                    var v = float.Parse(current.Value, CultureInfo.InvariantCulture);
+                    var value = float.Parse(_current.Value, CultureInfo.InvariantCulture);
                     Advance();
-                    return v;
+                    return value;
                 }
 
-                if (current.Type == TokenType.LParen)
+                if (_current.Type == TokenType.Identifier)
                 {
+                    var name = _current.Value;
                     Advance();
-                    var value = ParseFloatTerm();
-                    value = ContinueExpression(value);
+                    Expect(TokenType.LParen);
+                    var args = ParseArguments();
+                    return _gameLogic.EvaluateFunctionFloat(name, args);
+                }
+
+                if (Match(TokenType.LParen))
+                {
+                    var value = ParseArithmetic();
                     Expect(TokenType.RParen);
                     return value;
                 }
 
-                if (current.Type == TokenType.Identifier)
+                throw new InvalidOperationException($"Unexpected token {_current.Type}");
+            }
+
+            private List<string> ParseArguments()
+            {
+                var args = new List<string>();
+                if (_current.Type != TokenType.RParen)
                 {
-                    var func = current.Value;
-                    Advance();
-                    Expect(TokenType.LParen);
-                    var args = new List<string>();
-                    if (current.Type != TokenType.RParen)
-                    {
+                    args.Add(ParseArgument());
+                    while (Match(TokenType.Comma))
                         args.Add(ParseArgument());
-                        while (current.Type == TokenType.Comma)
-                        {
-                            Advance();
-                            args.Add(ParseArgument());
-                        }
-                    }
-                    Expect(TokenType.RParen);
-
-                    return gameLogic.EvaluateFunctionFloat(func, args);
                 }
 
-                throw new Exception("Invalid numeric factor");
+                Expect(TokenType.RParen);
+                return args;
             }
 
-            private static bool Compare(float left, TokenType op, float right)
+            private string ParseArgument()
             {
-                switch (op)
+                if (_current.Type is TokenType.String or TokenType.Number)
                 {
-                    case TokenType.Less: return left < right;
-                    case TokenType.LessEqual: return left <= right;
-                    case TokenType.Greater: return left > right;
-                    case TokenType.GreaterEqual: return left >= right;
-                    case TokenType.Equal: return left == right;
-                    default: return false;
+                    var val = _current.Value;
+                    Advance();
+                    return val;
                 }
+
+                if (_current.Type == TokenType.Identifier)
+                {
+                    var id = _current.Value;
+                    Advance();
+                    if (Match(TokenType.LParen))
+                    {
+                        var innerArgs = ParseArguments();
+                        var val = _gameLogic.EvaluateFunctionFloat(id, innerArgs);
+                        return val.ToString(CultureInfo.InvariantCulture);
+                    }
+
+                    return id;
+                }
+
+                throw new InvalidOperationException($"Invalid argument {_current.Type}");
             }
 
-            private void Advance()
+            private void Advance() => _current = _tokenizer.Next();
+
+            private bool Match(TokenType type)
             {
-                current = tokenizer.Next();
+                if (_current.Type != type)
+                {
+                    return false;
+                }
+
+                Advance();
+                return true;
             }
 
             private void Expect(TokenType type)
             {
-                if (current.Type != type)
+                if (_current.Type != type)
                 {
-                    throw new Exception("Expected " + type + " but got " + current.Type);
+                    throw new InvalidOperationException($"Expected {type} but got {_current.Type}");
                 }
+
                 Advance();
             }
 
             private static bool IsComparisonOperator(TokenType type)
             {
-                return type is TokenType.Less or TokenType.LessEqual or TokenType.Greater or TokenType.GreaterEqual or TokenType.Equal;
+                return type is TokenType.Less or TokenType.LessEqual or TokenType.Greater or TokenType.GreaterEqual
+                    or TokenType.Equal;
             }
         }
 
         private class Tokenizer
         {
-            private readonly string text;
-            private int index;
+            private readonly string _text;
+            private int _index;
 
-            public Tokenizer(string text)
-            {
-                this.text = text;
-            }
+            public Tokenizer(string text) => _text = text;
 
             public Token Next()
             {
-                SkipWhite();
-                if (index >= text.Length)
-                    return new Token(TokenType.EOF, string.Empty);
+                SkipWhitespace();
+                if (_index >= _text.Length)
+                {
+                    return new Token(TokenType.Eof, string.Empty);
+                }
 
-                char c = text[index];
+                var c = _text[_index];
                 switch (c)
                 {
-                    case '(': index++; return new Token(TokenType.LParen, "(");
-                    case ')': index++; return new Token(TokenType.RParen, ")");
-                    case ',': index++; return new Token(TokenType.Comma, ",");
-                    case '!': index++; return new Token(TokenType.Not, "!");
-                    case '+': index++; return new Token(TokenType.Plus, "+");
-                    case '-': index++; return new Token(TokenType.Minus, "-");
-                    case '*': index++; return new Token(TokenType.Star, "*");
-                    case '/': index++; return new Token(TokenType.Slash, "/");
+                    case '(':
+                        _index++;
+                        return new Token(TokenType.LParen, "(");
+                    case ')':
+                        _index++;
+                        return new Token(TokenType.RParen, ")");
+                    case ',':
+                        _index++;
+                        return new Token(TokenType.Comma, ",");
+                    case '!':
+                        _index++;
+                        return new Token(TokenType.Not, "!");
+                    case '+':
+                        _index++;
+                        return new Token(TokenType.Plus, "+");
+                    case '-':
+                        _index++;
+                        return new Token(TokenType.Minus, "-");
+                    case '*':
+                        _index++;
+                        return new Token(TokenType.Star, "*");
+                    case '/':
+                        _index++;
+                        return new Token(TokenType.Slash, "/");
                     case '"':
-                        index++;
-                        int startStr = index;
-                        while (index < text.Length && text[index] != '"')
+                        _index++;
+                        var start = _index;
+                        while (_index < _text.Length && _text[_index] != '"')
                         {
-                            if (text[index] == '\\' && index + 1 < text.Length)
-                                index += 2;
+                            if (_text[_index] == '\\' && _index + 1 < _text.Length)
+                            {
+                                _index += 2;
+                            }
                             else
-                                index++;
+                            {
+                                _index++;
+                            }
                         }
-                        string str = text.Substring(startStr, index - startStr);
-                        if (index < text.Length && text[index] == '"')
-                            index++;
+
+                        var str = _text.Substring(start, _index - start);
+                        if (_index < _text.Length && _text[_index] == '"')
+                        {
+                            _index++;
+                        }
+
                         return new Token(TokenType.String, str);
                 }
 
                 if (c == '&' && Peek(1) == '&')
                 {
-                    index += 2; return new Token(TokenType.And, "&&");
+                    _index += 2;
+                    return new Token(TokenType.And, "&&");
                 }
+
                 if (c == '|' && Peek(1) == '|')
                 {
-                    index += 2; return new Token(TokenType.Or, "||");
+                    _index += 2;
+                    return new Token(TokenType.Or, "||");
                 }
+
                 if (c == '<')
                 {
                     if (Peek(1) == '=')
                     {
-                        index += 2; return new Token(TokenType.LessEqual, "<=");
+                        _index += 2;
+                        return new Token(TokenType.LessEqual, "<=");
                     }
-                    index++; return new Token(TokenType.Less, "<");
+
+                    _index++;
+                    return new Token(TokenType.Less, "<");
                 }
+
                 if (c == '>')
                 {
                     if (Peek(1) == '=')
                     {
-                        index += 2; return new Token(TokenType.GreaterEqual, ">=");
+                        _index += 2;
+                        return new Token(TokenType.GreaterEqual, ">=");
                     }
-                    index++; return new Token(TokenType.Greater, ">");
-                }
-                if (c == '=')
-                {
-                    if (Peek(1) == '=')
-                    {
-                        index += 2; return new Token(TokenType.Equal, "==");
-                    }
+
+                    _index++;
+                    return new Token(TokenType.Greater, ">");
                 }
 
-                if (char.IsDigit(c) || (c == '.' && index + 1 < text.Length && char.IsDigit(text[index + 1])))
+                if (c == '=' && Peek(1) == '=')
                 {
-                    int start = index;
-                    bool hasDot = false;
+                    _index += 2;
+                    return new Token(TokenType.Equal, "==");
+                }
+
+                if (char.IsDigit(c) || (c == '.' && _index + 1 < _text.Length && char.IsDigit(_text[_index + 1])))
+                {
+                    var start = _index;
+                    var hasDot = false;
                     if (c == '.')
                     {
                         hasDot = true;
-                        index++;
+                        _index++;
                     }
 
-                    while (index < text.Length)
+                    while (_index < _text.Length)
                     {
-                        char nc = text[index];
+                        var nc = _text[_index];
                         if (char.IsDigit(nc))
                         {
-                            index++;
+                            _index++;
                         }
                         else if (nc == '.' && !hasDot)
                         {
                             hasDot = true;
-                            index++;
+                            _index++;
                         }
                         else
                         {
                             break;
                         }
                     }
-                    return new Token(TokenType.Number, text.Substring(start, index - start));
+
+                    return new Token(TokenType.Number, _text.Substring(start, _index - start));
                 }
 
-                if (char.IsLetter(c) || c == '@' || c == '#')
+                if (char.IsLetter(c) || c == '@' || c == '#' || c == '_' || c == '[' || c == ']' || c == '=')
                 {
-                    int start = index;
-                    while (index < text.Length && (char.IsLetterOrDigit(text[index]) || text[index] == '_' || text[index]=='@' || text[index]=='#' || text[index]=='[' || text[index]==']' || text[index]=='='))
+                    var start = _index;
+                    while (_index < _text.Length &&
+                           (char.IsLetterOrDigit(_text[_index]) || "_@#[]=".IndexOf(_text[_index]) >= 0))
                     {
-                        index++;
+                        _index++;
                     }
-                    return new Token(TokenType.Identifier, text.Substring(start, index - start));
+
+                    return new Token(TokenType.Identifier, _text.Substring(start, _index - start));
                 }
 
-                throw new Exception("Invalid character");
+                throw new InvalidOperationException($"Invalid character '{c}' at position {_index}");
             }
 
-            private void SkipWhite()
+            private void SkipWhitespace()
             {
-                while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
+                while (_index < _text.Length && char.IsWhiteSpace(_text[_index]))
+                {
+                    _index++;
+                }
             }
 
             private char Peek(int offset)
             {
-                int i = index + offset;
-                if (i >= text.Length) return '\0';
-                return text[i];
+                var pos = _index + offset;
+                return pos < _text.Length ? _text[pos] : '\0';
             }
         }
 
         private enum TokenType
         {
-            EOF,
+            Eof,
             Identifier,
             Number,
             String,
