@@ -5,101 +5,92 @@ using UnityEngine;
 namespace RuntimeScripting
 {
     /// <summary>
-    /// Handles periodic execution of actions.
+    /// Handles periodic execution of actions with configurable intervals, periods, and conditions,
+    /// ensuring no cumulative drift due to frame time or WaitForSeconds inaccuracies.
     /// </summary>
     public class ScheduledAction
     {
-        private readonly ParsedAction parsed;
-        private readonly RuntimeTextScriptController controller;
-        private float elapsed;
-        private float nextTime;
-        private float periodLimit;
-        private int executedCount;
+        private readonly ParsedAction _parsed;
+        private readonly RuntimeTextScriptController _controller;
+        private readonly float _period;
+        private float _interval;
+        private float _elapsed;
+        private int _executedCount;
 
         public ScheduledAction(ParsedAction parsed, RuntimeTextScriptController controller)
         {
-            this.parsed = parsed;
-            this.controller = controller;
-            periodLimit = parsed.Period > 0 ? parsed.Period : EvaluatePeriod();
-            nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
+            _parsed = parsed ?? throw new ArgumentNullException(nameof(parsed));
+            _controller = controller ?? throw new ArgumentNullException(nameof(controller));
+            _period = GetEvaluatedValue(parsed.Period, parsed.PeriodFuncRaw);
+            _interval = GetEvaluatedValue(parsed.Interval, parsed.IntervalFuncRaw);
         }
 
         /// <summary>
-        /// Coroutine execution handling intervals automatically.
+        /// Coroutine that executes the parsed action based on interval, period, max count, and optional conditions.
+        /// Uses absolute timing to prevent cumulative drift.
         /// </summary>
         public IEnumerator ExecuteCoroutine()
         {
-            elapsed = 0f;
-            nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
-            var start = Time.time;
-            var nextExecution = start + nextTime;
+            var startTime = Time.time;
+            var nextExecution = startTime + _interval;
 
-            while (BasicContinue())
+            while (CanContinue())
             {
-                var wait = Mathf.Max(0f, nextExecution - Time.time);
-                if (wait > 0f)
-                    yield return new WaitForSeconds(wait);
-                else
-                    yield return null;
+                // Calculate time until next execution to avoid drift
+                var waitTime = nextExecution - Time.time;
+                yield return waitTime > 0f ? new WaitForSeconds(waitTime) : null;
 
-                elapsed = Time.time - start;
+                // Update elapsed using absolute time
+                _elapsed = Time.time - startTime;
 
-                if (!ShouldContinueWithWhile())
+                // Check "while" condition before execution
+                if (!EvaluateCondition(_parsed.WhileRaw))
                     yield break;
 
-                if (string.IsNullOrEmpty(parsed.CanExecuteRaw) ||
-                    ConditionEvaluator.Evaluate(parsed.CanExecuteRaw, controller.GameLogic))
+                // Perform action if allowed
+                if (EvaluateCondition(_parsed.CanExecuteRaw))
                 {
-                    controller.GameLogic.ExecuteAction(parsed);
-                    executedCount++;
+                    _controller.GameLogic.ExecuteAction(_parsed);
+                    _executedCount++;
                 }
 
-                nextTime = parsed.Interval > 0 ? parsed.Interval : EvaluateInterval();
-                nextExecution += nextTime;
+                // Re-evaluate interval if dynamic
+                _interval = GetEvaluatedValue(_parsed.Interval, _parsed.IntervalFuncRaw);
+                nextExecution += _interval;
             }
         }
 
         /// <summary>
-        /// Determines whether execution should continue ignoring the 'while' expression.
+        /// Determines if the action should continue based on elapsed time, period, and execution count.
         /// </summary>
-        /// <returns>True to keep running; false to stop.</returns>
-        private bool BasicContinue()
-        {
-            if (periodLimit > 0 && elapsed >= periodLimit)
-                return false;
-            if (parsed.MaxCount > 0 && executedCount >= parsed.MaxCount)
-                return false;
-            return true;
-        }
+        private bool CanContinue()
+            => (_period <= 0f || _elapsed < _period)
+               && (_parsed.MaxCount <= 0 || _executedCount < _parsed.MaxCount);
 
         /// <summary>
-        /// Determines whether execution should continue, including the 'while' expression.
+        /// Evaluates raw condition string, returns true if empty or evaluation passes.
         /// </summary>
-        /// <returns>True to keep running; false to stop.</returns>
-        private bool ShouldContinueWithWhile()
+        private bool EvaluateCondition(string conditionRaw)
+            => string.IsNullOrEmpty(conditionRaw)
+               || ConditionEvaluator.Evaluate(conditionRaw, _controller.GameLogic);
+
+        /// <summary>
+        /// Evaluates a base value or an expression string to a float.
+        /// </summary>
+        private static float GetEvaluatedValue(float baseValue, string expressionRaw)
         {
-            if (!BasicContinue())
-                return false;
-            if (!string.IsNullOrEmpty(parsed.WhileRaw) &&
-                !ConditionEvaluator.Evaluate(parsed.WhileRaw, controller.GameLogic))
-                return false;
-            return true;
-        }
+            if (string.IsNullOrEmpty(expressionRaw))
+                return baseValue;
 
-        private float EvaluateInterval()
-        {
-            if (string.IsNullOrEmpty(parsed.IntervalFuncRaw))
-                return parsed.Interval;
-
-            return IntExpressionEvaluator.EvaluateFloat(parsed.IntervalFuncRaw, controller.GameLogic);
-        }
-
-        private float EvaluatePeriod()
-        {
-            if (string.IsNullOrEmpty(parsed.PeriodFuncRaw))
-                return parsed.Period;
-
-            return IntExpressionEvaluator.EvaluateFloat(parsed.PeriodFuncRaw, controller.GameLogic);
+            try
+            {
+                return IntExpressionEvaluator.EvaluateFloat(expressionRaw, null);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"Failed to evaluate expression '{expressionRaw}': {ex.Message}");
+                return baseValue;
+            }
         }
     }
 }
