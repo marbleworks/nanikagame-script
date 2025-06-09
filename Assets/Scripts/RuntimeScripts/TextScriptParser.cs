@@ -99,7 +99,7 @@ namespace RuntimeScripting
                 Expect('{');
                 var accumulated = expr.Trim();
                 conditionStack.Push(accumulated);
-                SkipLine();
+                SkipWhite();
                 while (SkipWhite() && !StartsWith("}"))
                 {
                     if (StartsWith("if"))
@@ -149,7 +149,7 @@ namespace RuntimeScripting
                     }
                     SkipWhite();
                     Expect('{');
-                    SkipLine();
+                    SkipWhite();
                     while (SkipWhite() && !StartsWith("}"))
                     {
                         if (StartsWith("if"))
@@ -199,7 +199,7 @@ namespace RuntimeScripting
                     mods = ParseModifierList(modContent);
                 }
                 Expect(';');
-                SkipLine();
+                SkipWhite();
 
                 var list = new List<ParsedAction>();
                 foreach (var act in actions)
