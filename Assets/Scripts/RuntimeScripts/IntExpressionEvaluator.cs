@@ -112,7 +112,7 @@ namespace RuntimeScripting
                         }
                     }
                     Expect(TokenType.RParen);
-                    return gameLogic.EvaluateFunctionInt(func, args.ToArray());
+                    return gameLogic.EvaluateFunctionInt(func, args);
                 }
 
                 throw new Exception("Unexpected token");
@@ -150,9 +150,7 @@ namespace RuntimeScripting
                             }
                         }
                         Expect(TokenType.RParen);
-                        int value = Enum.TryParse(id, out FunctionInt fi)
-                            ? gameLogic.EvaluateFunctionInt(fi, args.ToArray())
-                            : gameLogic.EvaluateFunctionInt(id, args.ToArray());
+                        var value = gameLogic.EvaluateFunctionInt(id, args);
 
                         // Continue parsing if the result participates in an arithmetic expression
                         value = ContinueTerm(value);
@@ -288,7 +286,7 @@ namespace RuntimeScripting
                         }
                     }
                     Expect(TokenType.RParen);
-                    return gameLogic.EvaluateFunctionFloat(func, args.ToArray());
+                    return gameLogic.EvaluateFunctionFloat(func, args);
                 }
 
                 throw new Exception("Unexpected token");
@@ -321,7 +319,7 @@ namespace RuntimeScripting
                             }
                         }
                         Expect(TokenType.RParen);
-                        float value = gameLogic.EvaluateFunctionFloat(id, args.ToArray());
+                        float value = gameLogic.EvaluateFunctionFloat(id, args);
                         value = ContinueTerm(value);
                         value = ContinueExpression(value);
                         return value.ToString(CultureInfo.InvariantCulture);

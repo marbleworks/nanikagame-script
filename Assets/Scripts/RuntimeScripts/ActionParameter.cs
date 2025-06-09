@@ -6,6 +6,6 @@ namespace RuntimeScripting
     public class ActionParameter
     {
         public string FunctionName;
-        public System.Collections.Generic.List<string> Args = new System.Collections.Generic.List<string>();
+        public System.Collections.Generic.List<string> Args = new();
     }
 }
