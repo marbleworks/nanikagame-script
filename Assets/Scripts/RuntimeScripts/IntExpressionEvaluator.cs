@@ -5,488 +5,364 @@ using System.Globalization;
 namespace RuntimeScripting
 {
     /// <summary>
-    /// Evaluates arithmetic expressions returning integers.
-    /// Supports +, -, *, /, parentheses and function calls.
+    /// Provides methods to evaluate arithmetic expressions returning integers.
+    /// Internally uses a generic parser for float evaluation and then floors the result.
     /// </summary>
     internal static class IntExpressionEvaluator
     {
+        /// <summary>
+        /// Evaluates the given expression and returns the floored integer result.
+        /// </summary>
         public static int Evaluate(string expression, GameLogic gameLogic)
         {
-            // Floor the result when converting from float to int
-            return (int)Math.Floor(EvaluateFloat(expression, gameLogic));
+            return (int) Math.Floor(EvaluateFloat(expression, gameLogic));
         }
 
+        /// <summary>
+        /// Evaluates the given expression as a float.
+        /// Returns 0 on null/empty input or parsing errors.
+        /// </summary>
         public static float EvaluateFloat(string expression, GameLogic gameLogic)
         {
             if (string.IsNullOrWhiteSpace(expression))
+            {
                 return 0f;
+            }
 
             try
             {
-                var tokenizer = new Tokenizer(expression);
-                var parser = new FloatParser(tokenizer, gameLogic);
-                return parser.ParseFullExpression();
+                var parser = new Parser<float>(
+                    expression,
+                    s => float.Parse(s, CultureInfo.InvariantCulture),
+                    gameLogic.EvaluateFunctionFloat,
+                    (a, b) => a + b,
+                    (a, b) => a - b,
+                    (a, b) => a * b,
+                    (a, b) => a / b);
+
+                return parser.Parse();
             }
-            catch (Exception)
+            catch
             {
                 return 0f;
             }
         }
+    }
 
-        private class Parser
+    /// <summary>
+    /// Generic recursive-descent parser for arithmetic expressions.
+    /// Supports +, -, *, /, parentheses, numeric literals, string literals, and function calls.
+    /// T represents the numeric return type (e.g., float).
+    /// </summary>
+    internal class Parser<T>
+    {
+        private readonly Tokenizer _tokenizer;
+        private readonly Func<string, T> _parseNumber;
+        private readonly Func<string, List<string>, T> _evalFunc;
+        private readonly Func<T, T, T> _add;
+        private readonly Func<T, T, T> _sub;
+        private readonly Func<T, T, T> _mul;
+        private readonly Func<T, T, T> _div;
+        private Token _current;
+
+        public Parser(
+            string expression,
+            Func<string, T> parseNumber,
+            Func<string, List<string>, T> evalFunc,
+            Func<T, T, T> add,
+            Func<T, T, T> sub,
+            Func<T, T, T> mul,
+            Func<T, T, T> div)
         {
-            private readonly Tokenizer tokenizer;
-            private Token current;
-            private readonly GameLogic gameLogic;
+            _tokenizer = new Tokenizer(expression);
+            _parseNumber = parseNumber;
+            _evalFunc = evalFunc;
+            _add = add;
+            _sub = sub;
+            _mul = mul;
+            _div = div;
+            _current = _tokenizer.Next();
+        }
 
-            public Parser(Tokenizer tokenizer, GameLogic gameLogic)
+        /// <summary>
+        /// Parses the entire expression and returns the result.
+        /// </summary>
+        public T Parse()
+        {
+            var result = ParseExpression();
+            Expect(TokenType.Eof);
+            return result;
+        }
+
+        private T ParseExpression()
+        {
+            var result = ParseTerm();
+            while (_current.Type is TokenType.Plus or TokenType.Minus)
             {
-                this.tokenizer = tokenizer;
-                this.gameLogic = gameLogic;
-                current = tokenizer.Next();
-            }
-
-            public int ParseFullExpression()
-            {
-                var result = ParseExpression();
-                Expect(TokenType.EOF);
-                return result;
-            }
-
-            private int ParseExpression()
-            {
-                var result = ParseTerm();
-                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseTerm();
-                    result = op == TokenType.Plus ? result + right : result - right;
-                }
-                return result;
-            }
-
-            private int ParseTerm()
-            {
-                var left = ParseFactor();
-                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseFactor();
-                    left = op == TokenType.Star ? left * right : left / right;
-                }
-                return left;
-            }
-
-            private int ParseFactor()
-            {
-                if (current.Type == TokenType.LParen)
-                {
-                    Advance();
-                    var value = ParseExpression();
-                    Expect(TokenType.RParen);
-                    return value;
-                }
-
-                if (current.Type == TokenType.Number)
-                {
-                    var v = int.Parse(current.Value, CultureInfo.InvariantCulture);
-                    Advance();
-                    return v;
-                }
-
-                if (current.Type == TokenType.Identifier)
-                {
-                    var func = current.Value;
-                    Advance();
-                    Expect(TokenType.LParen);
-                    var args = new List<string>();
-                    if (current.Type != TokenType.RParen)
-                    {
-                        args.Add(ParseArgument());
-                        while (current.Type == TokenType.Comma)
-                        {
-                            Advance();
-                            args.Add(ParseArgument());
-                        }
-                    }
-                    Expect(TokenType.RParen);
-                    return gameLogic.EvaluateFunctionInt(func, args);
-                }
-
-                throw new Exception("Unexpected token");
-            }
-
-            private string ParseArgument()
-            {
-                // Allow arithmetic expressions in argument positions and also
-                // support plain identifiers that represent string parameters.
-
-                if (current.Type == TokenType.String)
-                {
-                    var str = current.Value;
-                    Advance();
-                    return str;
-                }
-
-                if (current.Type == TokenType.Identifier)
-                {
-                    var id = current.Value;
-                    Advance();
-
-                    // Nested function call
-                    if (current.Type == TokenType.LParen)
-                    {
-                        Expect(TokenType.LParen);
-                        var args = new List<string>();
-                        if (current.Type != TokenType.RParen)
-                        {
-                            args.Add(ParseArgument());
-                            while (current.Type == TokenType.Comma)
-                            {
-                                Advance();
-                                args.Add(ParseArgument());
-                            }
-                        }
-                        Expect(TokenType.RParen);
-                        var value = gameLogic.EvaluateFunctionInt(id, args);
-
-                        // Continue parsing if the result participates in an arithmetic expression
-                        value = ContinueTerm(value);
-                        value = ContinueExpression(value);
-                        return value.ToString();
-                    }
-
-                    // Identifier without parentheses is a string argument
-                    return id;
-                }
-
-                // Any other token sequence represents an arithmetic expression
-                // that evaluates to an integer.
-                int exprValue = ParseExpression();
-                return exprValue.ToString();
-            }
-
-            private int ContinueTerm(int currentValue)
-            {
-                var left = currentValue;
-                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseFactor();
-                    left = op == TokenType.Star ? left * right : left / right;
-                }
-                return left;
-            }
-
-            private int ContinueExpression(int currentValue)
-            {
-                var result = currentValue;
-                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseTerm();
-                    result = op == TokenType.Plus ? result + right : result - right;
-                }
-                return result;
-            }
-
-            private void Advance()
-            {
-                current = tokenizer.Next();
-            }
-
-            private void Expect(TokenType type)
-            {
-                if (current.Type != type)
-                    throw new Exception("Expected " + type);
+                var op = _current.Type;
                 Advance();
+                var right = ParseTerm();
+                result = op == TokenType.Plus ? _add(result, right) : _sub(result, right);
             }
+
+            return result;
         }
 
-        private class FloatParser
+        private T ParseTerm()
         {
-            private readonly Tokenizer tokenizer;
-            private Token current;
-            private readonly GameLogic gameLogic;
-
-            public FloatParser(Tokenizer tokenizer, GameLogic gameLogic)
+            var result = ParseFactor();
+            while (_current.Type is TokenType.Star or TokenType.Slash)
             {
-                this.tokenizer = tokenizer;
-                this.gameLogic = gameLogic;
-                current = tokenizer.Next();
-            }
-
-            public float ParseFullExpression()
-            {
-                var result = ParseExpression();
-                Expect(TokenType.EOF);
-                return result;
-            }
-
-            private float ParseExpression()
-            {
-                var result = ParseTerm();
-                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseTerm();
-                    result = op == TokenType.Plus ? result + right : result - right;
-                }
-                return result;
-            }
-
-            private float ParseTerm()
-            {
-                var left = ParseFactor();
-                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseFactor();
-                    left = op == TokenType.Star ? left * right : left / right;
-                }
-                return left;
-            }
-
-            private float ParseFactor()
-            {
-                if (current.Type == TokenType.LParen)
-                {
-                    Advance();
-                    var value = ParseExpression();
-                    Expect(TokenType.RParen);
-                    return value;
-                }
-
-                if (current.Type == TokenType.Number)
-                {
-                    var v = float.Parse(current.Value, CultureInfo.InvariantCulture);
-                    Advance();
-                    return v;
-                }
-
-                if (current.Type == TokenType.Identifier)
-                {
-                    var func = current.Value;
-                    Advance();
-                    Expect(TokenType.LParen);
-                    var args = new List<string>();
-                    if (current.Type != TokenType.RParen)
-                    {
-                        args.Add(ParseArgument());
-                        while (current.Type == TokenType.Comma)
-                        {
-                            Advance();
-                            args.Add(ParseArgument());
-                        }
-                    }
-                    Expect(TokenType.RParen);
-                    return gameLogic.EvaluateFunctionFloat(func, args);
-                }
-
-                throw new Exception("Unexpected token");
-            }
-
-            private string ParseArgument()
-            {
-                if (current.Type == TokenType.String)
-                {
-                    var str = current.Value;
-                    Advance();
-                    return str;
-                }
-                if (current.Type == TokenType.Identifier)
-                {
-                    var id = current.Value;
-                    Advance();
-
-                    if (current.Type == TokenType.LParen)
-                    {
-                        Expect(TokenType.LParen);
-                        var args = new List<string>();
-                        if (current.Type != TokenType.RParen)
-                        {
-                            args.Add(ParseArgument());
-                            while (current.Type == TokenType.Comma)
-                            {
-                                Advance();
-                                args.Add(ParseArgument());
-                            }
-                        }
-                        Expect(TokenType.RParen);
-                        float value = gameLogic.EvaluateFunctionFloat(id, args);
-                        value = ContinueTerm(value);
-                        value = ContinueExpression(value);
-                        return value.ToString(CultureInfo.InvariantCulture);
-                    }
-
-                    return id;
-                }
-
-                float exprValue = ParseExpression();
-                return exprValue.ToString(CultureInfo.InvariantCulture);
-            }
-
-            private float ContinueTerm(float currentValue)
-            {
-                var left = currentValue;
-                while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseFactor();
-                    left = op == TokenType.Star ? left * right : left / right;
-                }
-                return left;
-            }
-
-            private float ContinueExpression(float currentValue)
-            {
-                var result = currentValue;
-                while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
-                {
-                    var op = current.Type;
-                    Advance();
-                    var right = ParseTerm();
-                    result = op == TokenType.Plus ? result + right : result - right;
-                }
-                return result;
-            }
-
-            private void Advance()
-            {
-                current = tokenizer.Next();
-            }
-
-            private void Expect(TokenType type)
-            {
-                if (current.Type != type)
-                    throw new Exception("Expected " + type);
+                var op = _current.Type;
                 Advance();
+                var right = ParseFactor();
+                result = op == TokenType.Star ? _mul(result, right) : _div(result, right);
             }
+
+            return result;
         }
 
-        private class Tokenizer
+        private T ParseFactor()
         {
-            private readonly string text;
-            private int index;
-
-            public Tokenizer(string text)
+            return _current.Type switch
             {
-                this.text = text;
-            }
-
-            public Token Next()
-            {
-                SkipWhite();
-                if (index >= text.Length)
-                    return new Token(TokenType.EOF, string.Empty);
-
-                char c = text[index];
-                switch (c)
-                {
-                    case '+': index++; return new Token(TokenType.Plus, "+");
-                    case '-': index++; return new Token(TokenType.Minus, "-");
-                    case '*': index++; return new Token(TokenType.Star, "*");
-                    case '/': index++; return new Token(TokenType.Slash, "/");
-                    case '(': index++; return new Token(TokenType.LParen, "(");
-                    case ')': index++; return new Token(TokenType.RParen, ")");
-                    case ',': index++; return new Token(TokenType.Comma, ",");
-                    case '"':
-                        index++;
-                        int startStr = index;
-                        while (index < text.Length && text[index] != '"')
-                        {
-                            if (text[index] == '\\' && index + 1 < text.Length)
-                                index += 2;
-                            else
-                                index++;
-                        }
-                        string str = text.Substring(startStr, index - startStr);
-                        if (index < text.Length && text[index] == '"')
-                            index++;
-                        return new Token(TokenType.String, str);
-                }
-
-                if (char.IsDigit(c) || (c == '.' && index + 1 < text.Length && char.IsDigit(text[index + 1])))
-                {
-                    int start = index;
-                    bool hasDot = false;
-                    if (c == '.')
-                    {
-                        hasDot = true;
-                        index++;
-                    }
-
-                    while (index < text.Length)
-                    {
-                        char nc = text[index];
-                        if (char.IsDigit(nc))
-                        {
-                            index++;
-                        }
-                        else if (nc == '.' && !hasDot)
-                        {
-                            hasDot = true;
-                            index++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    return new Token(TokenType.Number, text.Substring(start, index - start));
-                }
-
-                if (char.IsLetter(c) || c == '@' || c == '#' || c == '[' || c == ']' || c == '=')
-                {
-                    int start = index;
-                    while (index < text.Length && (char.IsLetterOrDigit(text[index]) || text[index]=='_' || text[index]=='@' || text[index]=='#' || text[index]=='[' || text[index]==']' || text[index]=='='))
-                    {
-                        index++;
-                    }
-                    return new Token(TokenType.Identifier, text.Substring(start, index - start));
-                }
-
-                throw new Exception("Invalid character");
-            }
-
-            private void SkipWhite()
-            {
-                while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
-            }
+                TokenType.LParen => ParseParenthesized(),
+                TokenType.Number => ParseNumber(),
+                TokenType.Identifier => ParseFunction(),
+                _ => throw new InvalidOperationException($"Unexpected token: {_current.Type}")
+            };
         }
 
-        private enum TokenType
+        private T ParseParenthesized()
         {
-            EOF,
-            Number,
-            Identifier,
-            String,
-            Plus,
-            Minus,
-            Star,
-            Slash,
-            LParen,
-            RParen,
-            Comma
+            Advance();
+            var value = ParseExpression();
+            Expect(TokenType.RParen);
+            return value;
         }
 
-        private readonly struct Token
+        private T ParseNumber()
         {
-            public TokenType Type { get; }
-            public string Value { get; }
+            var value = _parseNumber(_current.Value);
+            Advance();
+            return value;
+        }
 
-            public Token(TokenType type, string value)
+        private T ParseFunction()
+        {
+            var name = _current.Value;
+            Advance();
+            Expect(TokenType.LParen);
+            var args = ParseArguments();
+            Expect(TokenType.RParen);
+            return _evalFunc(name, args);
+        }
+
+        private List<string> ParseArguments()
+        {
+            var args = new List<string>();
+            while (_current.Type != TokenType.RParen)
             {
-                Type = type;
-                Value = value;
+                if (_current.Type == TokenType.String)
+                {
+                    args.Add(_current.Value);
+                    Advance();
+                }
+                else
+                {
+                    var exprValue = ParseExpression();
+                    args.Add(exprValue.ToString());
+                }
+
+                if (_current.Type == TokenType.Comma)
+                {
+                    Advance();
+                }
+                else
+                {
+                    break;
+                }
             }
+
+            return args;
+        }
+
+        private void Advance()
+        {
+            _current = _tokenizer.Next();
+        }
+
+        private void Expect(TokenType type)
+        {
+            if (_current.Type != type)
+            {
+                throw new InvalidOperationException($"Expected {type}, but got {_current.Type}");
+            }
+
+            Advance();
+        }
+    }
+
+    /// <summary>
+    /// Simple tokenizer for arithmetic expressions.
+    /// Recognizes numbers, identifiers, string literals, operators, and parentheses.
+    /// </summary>
+    internal class Tokenizer
+    {
+        private readonly string _text;
+        private int _position;
+
+        public Tokenizer(string text)
+        {
+            (_text, _position) = (text, 0);
+        }
+
+        public Token Next()
+        {
+            SkipWhitespace();
+
+            if (_position >= _text.Length)
+            {
+                return new Token(TokenType.Eof, string.Empty);
+            }
+
+            var ch = _text[_position];
+            return ch switch
+            {
+                '+' => ReturnToken(TokenType.Plus, "+"),
+                '-' => ReturnToken(TokenType.Minus, "-"),
+                '*' => ReturnToken(TokenType.Star, "*"),
+                '/' => ReturnToken(TokenType.Slash, "/"),
+                '(' => ReturnToken(TokenType.LParen, "("),
+                ')' => ReturnToken(TokenType.RParen, ")"),
+                ',' => ReturnToken(TokenType.Comma, ","),
+                '"' => ReadString(),
+                _ when char.IsDigit(ch) || (ch == '.' && PeekDigit()) => ReadNumber(),
+                _ when char.IsLetter(ch) || IsIdentifierStart(ch) => ReadIdentifier(),
+                _ => throw new InvalidOperationException($"Invalid character at position {_position}: '{ch}'")
+            };
+        }
+
+        private Token ReturnToken(TokenType type, string value)
+        {
+            _position++;
+            return new Token(type, value);
+        }
+
+        private Token ReadString()
+        {
+            _position++;
+            var start = _position;
+            while (_position < _text.Length && _text[_position] != '"')
+            {
+                if (_text[_position] == '\\' && _position + 1 < _text.Length)
+                {
+                    _position += 2;
+                }
+                else
+                {
+                    _position++;
+                }
+            }
+
+            var content = _text[start.._position];
+            if (_position < _text.Length && _text[_position] == '"')
+            {
+                _position++;
+            }
+
+            return new Token(TokenType.String, content);
+        }
+
+        private Token ReadNumber()
+        {
+            var start = _position;
+            var hasDot = false;
+            if (_text[_position] == '.')
+            {
+                hasDot = true;
+                _position++;
+            }
+
+            while (_position < _text.Length)
+            {
+                var ch = _text[_position];
+                if (char.IsDigit(ch))
+                {
+                    _position++;
+                }
+                else if (ch == '.' && !hasDot)
+                {
+                    hasDot = true;
+                    _position++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return new Token(TokenType.Number, _text[start.._position]);
+        }
+
+        private bool PeekDigit()
+        {
+            return _position + 1 < _text.Length && char.IsDigit(_text[_position + 1]);
+        }
+
+        private Token ReadIdentifier()
+        {
+            var start = _position;
+            while (_position < _text.Length &&
+                   (char.IsLetterOrDigit(_text[_position]) || IsIdentifierPart(_text[_position])))
+            {
+                _position++;
+            }
+
+            return new Token(TokenType.Identifier, _text[start.._position]);
+        }
+
+        private static bool IsIdentifierStart(char ch)
+        {
+            return ch is '@' or '#' or '[' or ']' or '=' or '_';
+        }
+
+        private static bool IsIdentifierPart(char ch)
+        {
+            return IsIdentifierStart(ch) || char.IsLetterOrDigit(ch);
+        }
+
+        private void SkipWhitespace()
+        {
+            while (_position < _text.Length && char.IsWhiteSpace(_text[_position]))
+            {
+                _position++;
+            }
+        }
+    }
+
+    internal enum TokenType
+    {
+        Eof,
+        Number,
+        Identifier,
+        String,
+        Plus,
+        Minus,
+        Star,
+        Slash,
+        LParen,
+        RParen,
+        Comma
+    }
+
+    internal readonly struct Token
+    {
+        public TokenType Type { get; }
+        public string Value { get; }
+        public Token(TokenType type, string value)
+        {
+            (Type, Value) = (type, value);
         }
     }
 }
