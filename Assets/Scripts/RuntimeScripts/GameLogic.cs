@@ -14,7 +14,7 @@ namespace RuntimeScripting
     {
         #region Fields
         private int _comboCount;
-        private int _resourceCount = 1;
+        private int _resourceCount;
         #endregion
 
         #region Public Functions
