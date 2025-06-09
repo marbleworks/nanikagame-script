@@ -102,14 +102,14 @@ namespace RuntimeScripting
                 }
 
                 // If no comparison, non-zero is true
-                return leftValue != 0;
+                return Math.Abs(leftValue) > float.Epsilon;
             }
 
-            private int ParseValue()
+            private float ParseValue()
             {
                 if (current.Type == TokenType.Number)
                 {
-                    var v = int.Parse(current.Value, CultureInfo.InvariantCulture);
+                    var v = float.Parse(current.Value, CultureInfo.InvariantCulture);
                     Advance();
                     return v;
                 }
@@ -130,7 +130,7 @@ namespace RuntimeScripting
                     }
                     Expect(TokenType.RParen);
                     
-                    return gameLogic.EvaluateFunctionInt(func, args);
+                    return gameLogic.EvaluateFunctionFloat(func, args);
                 }
 
                 throw new Exception("Unexpected token" + current.Type);
@@ -169,7 +169,7 @@ namespace RuntimeScripting
                             }
                         }
                         Expect(TokenType.RParen);
-                        var value = gameLogic.EvaluateFunctionInt(id, args);
+                        var value = gameLogic.EvaluateFunctionFloat(id, args);
 
                         // Continue parsing if this value participates in an arithmetic expression
                         value = ContinueTerm(value);
@@ -182,50 +182,50 @@ namespace RuntimeScripting
                 throw new Exception("Invalid argument");
             }
 
-            private int ContinueTerm(int currentValue)
+            private float ContinueTerm(float currentValue)
             {
                 var left = currentValue;
                 while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
                 {
                     var op = current.Type;
                     Advance();
-                    var right = ParseIntFactor();
+                    var right = ParseFloatFactor();
                     left = op == TokenType.Star ? left * right : left / right;
                 }
                 return left;
             }
 
-            private int ContinueExpression(int currentValue)
+            private float ContinueExpression(float currentValue)
             {
                 var result = currentValue;
                 while (current.Type == TokenType.Plus || current.Type == TokenType.Minus)
                 {
                     var op = current.Type;
                     Advance();
-                    var right = ParseIntTerm();
+                    var right = ParseFloatTerm();
                     result = op == TokenType.Plus ? result + right : result - right;
                 }
                 return result;
             }
 
-            private int ParseIntTerm()
+            private float ParseFloatTerm()
             {
-                var left = ParseIntFactor();
+                var left = ParseFloatFactor();
                 while (current.Type == TokenType.Star || current.Type == TokenType.Slash)
                 {
                     var op = current.Type;
                     Advance();
-                    var right = ParseIntFactor();
+                    var right = ParseFloatFactor();
                     left = op == TokenType.Star ? left * right : left / right;
                 }
                 return left;
             }
 
-            private int ParseIntFactor()
+            private float ParseFloatFactor()
             {
                 if (current.Type == TokenType.Number)
                 {
-                    var v = int.Parse(current.Value, CultureInfo.InvariantCulture);
+                    var v = float.Parse(current.Value, CultureInfo.InvariantCulture);
                     Advance();
                     return v;
                 }
@@ -233,7 +233,7 @@ namespace RuntimeScripting
                 if (current.Type == TokenType.LParen)
                 {
                     Advance();
-                    var value = ParseIntTerm();
+                    var value = ParseFloatTerm();
                     value = ContinueExpression(value);
                     Expect(TokenType.RParen);
                     return value;
@@ -256,13 +256,13 @@ namespace RuntimeScripting
                     }
                     Expect(TokenType.RParen);
 
-                    return gameLogic.EvaluateFunctionInt(func, args);
+                    return gameLogic.EvaluateFunctionFloat(func, args);
                 }
 
-                throw new Exception("Invalid integer factor");
+                throw new Exception("Invalid numeric factor");
             }
 
-            private static bool Compare(int left, TokenType op, int right)
+            private static bool Compare(float left, TokenType op, float right)
             {
                 switch (op)
                 {
@@ -370,10 +370,33 @@ namespace RuntimeScripting
                     }
                 }
 
-                if (char.IsDigit(c))
+                if (char.IsDigit(c) || (c == '.' && index + 1 < text.Length && char.IsDigit(text[index + 1])))
                 {
                     int start = index;
-                    while (index < text.Length && char.IsDigit(text[index])) index++;
+                    bool hasDot = false;
+                    if (c == '.')
+                    {
+                        hasDot = true;
+                        index++;
+                    }
+
+                    while (index < text.Length)
+                    {
+                        char nc = text[index];
+                        if (char.IsDigit(nc))
+                        {
+                            index++;
+                        }
+                        else if (nc == '.' && !hasDot)
+                        {
+                            hasDot = true;
+                            index++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
                     return new Token(TokenType.Number, text.Substring(start, index - start));
                 }
 
