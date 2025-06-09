@@ -19,6 +19,11 @@ namespace RuntimeScripting
 
         #region Public Functions
 
+        public void Init()
+        {
+            _time = Time.time;
+        }
+
         public int HpMin() => 100;
 
         public int ComboCount() => ++_comboCount;
@@ -107,7 +112,14 @@ namespace RuntimeScripting
         #endregion
 
         #region Action Methods
-        public void Attack(int value) => Debug.Log($"Attack {value}");
+
+        private float _time;
+        public void Attack(int value)
+        {
+            var elapsed = Time.time - _time;
+            _time = Time.time;
+            Debug.Log($"Attack {value} Elapsed: {elapsed}");
+        }
 
         public void AddPlayerEffect(string targets, string effectId, int value)
             => Debug.Log($"Add effect {effectId} {value} to {targets}");
