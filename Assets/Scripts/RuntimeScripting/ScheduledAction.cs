@@ -84,7 +84,7 @@ namespace RuntimeScripting
 
             try
             {
-                return IntExpressionEvaluator.EvaluateFloat(expressionRaw, null);
+                return ExpressionEvaluator.EvaluateFloat(expressionRaw, null);
             }
             catch (Exception ex)
             {

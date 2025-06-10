@@ -121,7 +121,7 @@ namespace RuntimeScripting
             => (int) Math.Floor(ParseFloatArg(param, index));
 
         private float ParseFloatArg(string arg) =>
-            float.TryParse(arg, out var val) ? val : IntExpressionEvaluator.EvaluateFloat(arg, this);
+            float.TryParse(arg, out var val) ? val : ExpressionEvaluator.EvaluateFloat(arg, this);
 
         public float ParseFloatArg(ActionParameter param, int index)
             => index >= 0 && index < param.Args.Count ? ParseFloatArg(param.Args[index]) : 0f;

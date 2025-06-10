@@ -8,7 +8,7 @@ namespace RuntimeScripting
     /// Provides methods to evaluate arithmetic expressions returning integers.
     /// Internally uses a generic parser for float evaluation and then floors the result.
     /// </summary>
-    internal static class IntExpressionEvaluator
+    internal static class ExpressionEvaluator
     {
         /// <summary>
         /// Evaluates the given expression and returns the floored integer result.
