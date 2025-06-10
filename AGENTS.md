@@ -8,8 +8,6 @@ This document outlines the expectations for AI agents contributing to the Data-D
 ## Repository Overview
 ```
 /Assets
-  /Resources
-    /ScriptFiles
   /Scripts
     /RuntimeScripts
       Program files here
@@ -18,7 +16,6 @@ README.md
 AGENTS.md  ← this file
 ```
 - **RuntimeScripts** contain the core C# logic (namespace `RuntimeScripting`).
-- **ScriptFiles** under `/Assets/Resources/ScriptFiles` store the text DSL files, each typically defining a single `[OnEventName]` block.
 - **README.md** explains project setup and examples.
 - **AGENTS.md** (this document) details how AI agents should interact with the repository.
 
@@ -60,24 +57,16 @@ AGENTS.md  ← this file
      - At least one of `interval` or `period` is required if any repeating behavior is intended. If neither is specified and no modifiers are given, the action runs exactly once.
    - **Invocation mapping**: Every function used in `<Condition>` or `<ActionList>` must have a corresponding static method in `GameLogic` that returns `int` or `bool`.
 
-3. **Avoid Large Refactors**  
-   - Do **not** restructure core parsers (`TextScriptParser`, `ConditionEvaluator`, `ScheduledAction`).  
-   - Instead, **add** new methods or extend existing code paths to support new DSL features.  
-   - Keep the folder layout and `namespace RuntimeScripting` intact.
-
-4. **Performance Considerations**  
+3. **Performance Considerations**  
    - Minimize expensive operations in per-frame or timer-driven code paths (e.g., avoid heavy allocations inside `Update()` loops).  
    - Use caching where appropriate (e.g., parse each DSL file only once and reuse the AST).
 
-5. **Error Handling**  
+4. **Error Handling**  
    - Handle errors gracefully. Use `Debug.LogWarning` for non-critical skips (e.g., an invalid line in a DSL file) and `Debug.LogError` for serious failures (e.g., parser exceptions).  
    - Skipped or invalid lines should not crash the game—log a warning and continue parsing the next line.
 
-6. **Coding Style**  
-   - Follow Microsoft C# conventions:
-     - Classes and methods in **PascalCase**.
-     - Local variables in **camelCase**.
-     - Four-space indentation (no tabs).
+5. **Coding Style**  
+   - Follow Microsoft C# conventions.
    - Add XML doc comments (`/// <summary>…</summary>`) to all public APIs.
    - Keep complex logic commented inline for maintainability.
 
