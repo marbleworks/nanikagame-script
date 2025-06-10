@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Random = UnityEngine.Random;
 
 namespace RuntimeScripting
 {
@@ -11,6 +12,42 @@ namespace RuntimeScripting
     {
         private readonly Dictionary<string, Action<GameLogic, ActionParameter>> _actions = new();
         private readonly Dictionary<string, Func<GameLogic, ActionParameter, float>> _functions = new();
+
+        public GameLogic()
+        {
+            RegisterDefaultFunctions();
+        }
+
+        private void RegisterDefaultFunctions()
+        {
+            RegisterFunction(nameof(RandomInt),
+                (logic, parameter) => RandomInt(
+                    ParseIntArg(parameter, 0),
+                    ParseIntArg(parameter, 1)));
+
+            RegisterFunction(nameof(RandomFloat),
+                (logic, parameter) => RandomFloat(
+                    ParseFloatArg(parameter, 0),
+                    ParseFloatArg(parameter, 1)));
+
+            RegisterFunction(nameof(Double),
+                (logic, parameter) => Double(
+                    ParseFloatArg(parameter, 0)));
+
+            RegisterFunction(nameof(Pow),
+                (logic, parameter) => Pow(
+                    ParseFloatArg(parameter, 0),
+                    ParseFloatArg(parameter, 1)));
+
+            RegisterFunction(nameof(Sqrt),
+                (logic, parameter) => Sqrt(
+                    ParseFloatArg(parameter, 0)));
+
+            RegisterFunction(nameof(Mod),
+                (logic, parameter) => Mod(
+                    ParseFloatArg(parameter, 0),
+                    ParseFloatArg(parameter, 1)));
+        }
 
         /// <summary>
         /// Registers a custom action that can be invoked from scripts.
@@ -39,6 +76,16 @@ namespace RuntimeScripting
             var param = CreateParameter(func, args);
 
             return _functions.TryGetValue(func, out var custom) ? custom(this, param) : 0f;
+        }
+
+        /// <summary>
+        /// Evaluates a boolean condition string using the built-in parser.
+        /// </summary>
+        /// <param name="condition">Condition expression.</param>
+        /// <returns>True if the expression evaluates to true; otherwise, false.</returns>
+        public bool EvaluateCondition(string condition)
+        {
+            return ConditionEvaluator.Evaluate(condition, this);
         }
 
         private static ActionParameter CreateParameter(ParsedAction pa)
@@ -70,18 +117,23 @@ namespace RuntimeScripting
             }
         }
 
-        private int ParseIntArg(string arg)
-            => int.TryParse(arg, out var val)
-                ? val
-                : IntExpressionEvaluator.Evaluate(arg, this);
-        
         public int ParseIntArg(ActionParameter param, int index)
-            => index >= 0 && index < param.Args.Count ? ParseIntArg(param.Args[index]) : 0;
+            => (int) Math.Floor(ParseFloatArg(param, index));
 
         private float ParseFloatArg(string arg) =>
             float.TryParse(arg, out var val) ? val : IntExpressionEvaluator.EvaluateFloat(arg, this);
-        
+
         public float ParseFloatArg(ActionParameter param, int index)
             => index >= 0 && index < param.Args.Count ? ParseFloatArg(param.Args[index]) : 0f;
+
+        private static int RandomInt(int min, int max) => Random.Range(min, max);
+
+        private static float RandomFloat(float min, float max) => Random.Range(min, max);
+
+        private static float Double(float value) => value * 2f;
+        private static float Pow(float value, float power) => (float) Math.Pow(value, power);
+        private static float Sqrt(float value) => (float) Math.Sqrt(value);
+        private static float Mod(float value, float mod) => value % mod;
+
     }
 }
