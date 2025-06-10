@@ -151,6 +151,18 @@ namespace RuntimeScripting
                 {
                     var name = _current.Value;
                     Advance();
+
+                    // allow "true"/"false" literals without parentheses
+                    if (string.Equals(name, "true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return 1f;
+                    }
+
+                    if (string.Equals(name, "false", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return 0f;
+                    }
+
                     Expect(TokenType.LParen);
                     var args = ParseArguments();
                     return _gameLogic.EvaluateFunctionFloat(name, args);

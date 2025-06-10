@@ -41,6 +41,16 @@ namespace RuntimeScripting
             return _functions.TryGetValue(func, out var custom) ? custom(this, param) : 0f;
         }
 
+        /// <summary>
+        /// Evaluates a boolean condition string using the built-in parser.
+        /// </summary>
+        /// <param name="condition">Condition expression.</param>
+        /// <returns>True if the expression evaluates to true; otherwise, false.</returns>
+        public bool EvaluateCondition(string condition)
+        {
+            return ConditionEvaluator.Evaluate(condition, this);
+        }
+
         private static ActionParameter CreateParameter(ParsedAction pa)
         {
             return CreateParameter(pa.FunctionName, pa.Args);

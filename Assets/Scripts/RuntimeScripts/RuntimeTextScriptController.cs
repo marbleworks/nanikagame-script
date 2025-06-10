@@ -83,7 +83,7 @@ namespace RuntimeScripting
             foreach (var action in parsedEvent.Actions)
             {
                 if (!string.IsNullOrEmpty(action.Condition) &&
-                    !ConditionEvaluator.Evaluate(action.Condition, GameLogic))
+                    !GameLogic.EvaluateCondition(action.Condition))
                 {
                     continue;
                 }

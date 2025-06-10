@@ -72,7 +72,7 @@ namespace RuntimeScripting
         /// </summary>
         private bool EvaluateCondition(string conditionRaw)
             => string.IsNullOrEmpty(conditionRaw)
-               || ConditionEvaluator.Evaluate(conditionRaw, _controller.GameLogic);
+               || _controller.GameLogic.EvaluateCondition(conditionRaw);
 
         /// <summary>
         /// Evaluates a base value or an expression string to a float.
