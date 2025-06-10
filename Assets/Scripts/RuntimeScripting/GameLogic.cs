@@ -70,6 +70,11 @@ namespace RuntimeScripting
             if (string.IsNullOrEmpty(name) || func == null) return;
             _functions[name] = func;
         }
+        
+        public void RegisterFunction(string name, Func<GameLogic, ActionParameter, bool> func)
+        {
+            RegisterFunction(name, (logic, parameter) => func(logic, parameter) ? 1f : 0f);
+        }
 
         public float EvaluateFunctionFloat(string func, List<string> args)
         {
