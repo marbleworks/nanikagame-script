@@ -257,7 +257,7 @@ AGENTS.md  ← this file
 - **ScheduledAction.cs** – handles repeating actions and execution timing.
 - **RuntimeTextScriptController.cs** – MonoBehaviour that loads scripts, triggers events, and schedules actions.
 - **GameLogic.cs** – contains the gameplay methods used by actions and conditions.
-- **IntExpressionEvaluator.cs** – parses arithmetic expressions for integer and float values.
+- **ExpressionEvaluator.cs** – parses arithmetic expressions for integer and float values.
 - **FunctionEnums.cs** – lists GameLogic functions available to scripts.
 
 ---
