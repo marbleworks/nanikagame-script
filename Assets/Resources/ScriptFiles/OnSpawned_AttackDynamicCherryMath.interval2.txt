@@ -1,2 +1,0 @@
-[OnSpawned]
-Attack(1+NanikaCount(#a[id=cherry])*5) interval=2

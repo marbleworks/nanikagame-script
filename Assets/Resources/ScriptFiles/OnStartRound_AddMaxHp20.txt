@@ -1,2 +1,0 @@
-[OnStartRound]
-AddMaxHp(@l, 20)

@@ -1,2 +1,0 @@
-[OnSpawned]
-UseResource(sun,6): Attack(50) interval=3
