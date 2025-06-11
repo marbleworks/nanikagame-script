@@ -83,7 +83,29 @@ namespace RuntimeScripting
         {
             if (!_events.TryGetValue(eventName, out var parsedEvent)) return;
 
-            foreach (var action in parsedEvent.Actions)
+            ExecuteActions(parsedEvent.Actions);
+        }
+
+        /// <summary>
+        /// Executes DSL text that contains only action statements without an event block.
+        /// </summary>
+        /// <param name="script">The raw DSL text.</param>
+        public void ExecuteString(string script)
+        {
+            if (string.IsNullOrWhiteSpace(script)) return;
+
+            const string tempEvent = "OnImmediate";
+            var wrapped = $"[{tempEvent}]\n" + script;
+            var parsed = TextScriptParser.ParseString(wrapped);
+            if (parsed.TryGetValue(tempEvent, out var evt))
+            {
+                ExecuteActions(evt.Actions);
+            }
+        }
+
+        private void ExecuteActions(List<ParsedAction> actions)
+        {
+            foreach (var action in actions)
             {
                 if (!string.IsNullOrEmpty(action.Condition) &&
                     !GameLogic.EvaluateCondition(action.Condition))
