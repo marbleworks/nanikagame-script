@@ -16,13 +16,13 @@ namespace RuntimeScripting
         /// <summary>
         /// Gets the reference to the GameLogic instance.
         /// </summary>
-        public GameLogic GameLogic { get; private set; }
+        public IGameLogic GameLogic { get; private set; }
 
         /// <summary>
         /// Initializes the controller with the specified GameLogic.
         /// </summary>
         /// <param name="gameLogic">The GameLogic instance to use.</param>
-        public void Initialize(GameLogic gameLogic) => GameLogic = gameLogic;
+        public void Initialize(IGameLogic gameLogic) => GameLogic = gameLogic;
 
         /// <summary>
         /// Loads all script files from a Resources subfolder and merges their events.

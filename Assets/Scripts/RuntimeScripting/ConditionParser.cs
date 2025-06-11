@@ -11,9 +11,9 @@ namespace RuntimeScripting
     {
         private ConditionToken _current;
         private readonly ConditionTokenizer _tokenizer;
-        private readonly GameLogic _gameLogic;
+        private readonly IGameLogic _gameLogic;
 
-        public ConditionParser(ConditionTokenizer tokenizer, GameLogic gameLogic)
+        public ConditionParser(ConditionTokenizer tokenizer, IGameLogic gameLogic)
         {
             _tokenizer = tokenizer;
             _gameLogic = gameLogic;

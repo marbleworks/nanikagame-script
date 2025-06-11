@@ -5,23 +5,22 @@ namespace RuntimeScripting
     /// <summary>
     /// Tokenizer for arithmetic expressions.
     /// </summary>
-    internal sealed class ExpressionTokenizer
+    internal sealed class ExpressionTokenizer : TokenizerBase
     {
-        private readonly string _text;
-        private int _position;
-
-        public ExpressionTokenizer(string text) => (_text, _position) = (text, 0);
+        public ExpressionTokenizer(string text) : base(text)
+        {
+        }
 
         public ExprToken Next()
         {
             SkipWhitespace();
 
-            if (_position >= _text.Length)
+            if (_index >= _text.Length)
             {
                 return new ExprToken(ExprTokenType.Eof, string.Empty);
             }
 
-            var ch = _text[_position];
+            var ch = _text[_index];
             return ch switch
             {
                 '+' => ReturnToken(ExprTokenType.Plus, "+"),
@@ -34,96 +33,40 @@ namespace RuntimeScripting
                 '"' => ReadString(),
                 _ when char.IsDigit(ch) || (ch == '.' && PeekDigit()) => ReadNumber(),
                 _ when char.IsLetter(ch) || IsIdentifierStart(ch) => ReadIdentifier(),
-                _ => throw new InvalidOperationException($"Invalid character at position {_position}: '{ch}'")
+                _ => throw new InvalidOperationException($"Invalid character at position {_index}: '{ch}'")
             };
         }
 
         private ExprToken ReturnToken(ExprTokenType type, string value)
         {
-            _position++;
+            _index++;
             return new ExprToken(type, value);
         }
 
         private ExprToken ReadString()
         {
-            _position++;
-            var start = _position;
-            while (_position < _text.Length && _text[_position] != '"')
-            {
-                if (_text[_position] == '\\' && _position + 1 < _text.Length)
-                {
-                    _position += 2;
-                }
-                else
-                {
-                    _position++;
-                }
-            }
-
-            var content = _text[start.._position];
-            if (_position < _text.Length && _text[_position] == '"')
-            {
-                _position++;
-            }
-
+            var content = ReadStringLiteral();
             return new ExprToken(ExprTokenType.String, content);
         }
 
         private ExprToken ReadNumber()
         {
-            var start = _position;
-            var hasDot = false;
-            if (_text[_position] == '.')
-            {
-                hasDot = true;
-                _position++;
-            }
-
-            while (_position < _text.Length)
-            {
-                var ch = _text[_position];
-                if (char.IsDigit(ch))
-                {
-                    _position++;
-                }
-                else if (ch == '.' && !hasDot)
-                {
-                    hasDot = true;
-                    _position++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            return new ExprToken(ExprTokenType.Number, _text[start.._position]);
+            var number = ReadNumberLiteral();
+            return new ExprToken(ExprTokenType.Number, number);
         }
 
-        private bool PeekDigit() => _position + 1 < _text.Length && char.IsDigit(_text[_position + 1]);
+        private bool PeekDigit() => base.PeekDigit();
 
         private ExprToken ReadIdentifier()
         {
-            var start = _position;
-            while (_position < _text.Length && (char.IsLetterOrDigit(_text[_position]) || IsIdentifierPart(_text[_position])))
+            var start = _index;
+            while (_index < _text.Length && (char.IsLetterOrDigit(_text[_index]) || IsIdentifierPart(_text[_index])))
             {
-                _position++;
+                _index++;
             }
 
-            return new ExprToken(ExprTokenType.Identifier, _text[start.._position]);
-        }
-
-        private static bool IsIdentifierStart(char ch) => ch is '@' or '#' or '[' or ']' or '=' or '_';
-
-        private static bool IsIdentifierPart(char ch) => IsIdentifierStart(ch) || char.IsLetterOrDigit(ch);
-
-        private void SkipWhitespace()
-        {
-            while (_position < _text.Length && char.IsWhiteSpace(_text[_position]))
-            {
-                _position++;
-            }
-        }
+            return new ExprToken(ExprTokenType.Identifier, _text[start.._index]);
+        }        }
     }
 
     internal enum ExprTokenType

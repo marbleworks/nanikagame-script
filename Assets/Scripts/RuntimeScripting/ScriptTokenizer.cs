@@ -7,15 +7,12 @@ namespace RuntimeScripting
     /// Simple helper for scanning script text character by character.
     /// Provides utilities used by the DSL parser.
     /// </summary>
-    internal sealed class ScriptTokenizer
+    internal sealed class ScriptTokenizer : TokenizerBase
     {
-        private readonly string _text;
-        private int _index;
         private ScriptToken? _peeked;
 
-        public ScriptTokenizer(string text)
+        public ScriptTokenizer(string text) : base(text ?? throw new ArgumentNullException(nameof(text)))
         {
-            _text = text ?? throw new ArgumentNullException(nameof(text));
         }
 
         /// <summary>
@@ -94,11 +91,7 @@ namespace RuntimeScripting
         /// </summary>
         public bool SkipWhite()
         {
-            while (_index < _text.Length && char.IsWhiteSpace(_text[_index]))
-            {
-                _index++;
-            }
-
+            SkipWhitespace();
             return _index < _text.Length;
         }
 
@@ -235,57 +228,14 @@ namespace RuntimeScripting
 
         private ScriptToken ReadString()
         {
-            var quote = _text[_index];
-            _index++;
-            var start = _index;
-            while (_index < _text.Length && _text[_index] != quote)
-            {
-                if (_text[_index] == '\\' && _index + 1 < _text.Length)
-                {
-                    _index += 2;
-                }
-                else
-                {
-                    _index++;
-                }
-            }
-
-            var str = _text.Substring(start, _index - start);
-            if (_index < _text.Length && _text[_index] == quote)
-                _index++;
-
+            var str = ReadStringLiteral();
             return new ScriptToken(ScriptTokenType.String, str);
         }
 
         private ScriptToken ReadNumber()
         {
-            var start = _index;
-            var hasDot = false;
-            if (_text[_index] == '.')
-            {
-                hasDot = true;
-                _index++;
-            }
-
-            while (_index < _text.Length)
-            {
-                var ch = _text[_index];
-                if (char.IsDigit(ch))
-                {
-                    _index++;
-                }
-                else if (ch == '.' && !hasDot)
-                {
-                    hasDot = true;
-                    _index++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            return new ScriptToken(ScriptTokenType.Number, _text.Substring(start, _index - start));
+            var number = ReadNumberLiteral();
+            return new ScriptToken(ScriptTokenType.Number, number);
         }
 
         private ScriptToken ReadIdentifier()

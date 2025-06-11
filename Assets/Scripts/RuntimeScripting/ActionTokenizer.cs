@@ -6,14 +6,10 @@ namespace RuntimeScripting
     /// Tokenizer for action lists and modifier blocks.
     /// Provides tokens for identifiers, numbers, strings and punctuation.
     /// </summary>
-    internal sealed class ActionTokenizer
+    internal sealed class ActionTokenizer : TokenizerBase
     {
-        private readonly string _text;
-        private int _index;
-
-        public ActionTokenizer(string text)
+        public ActionTokenizer(string text) : base(text)
         {
-            _text = text ?? string.Empty;
         }
 
         public ActionToken Next()
@@ -51,51 +47,14 @@ namespace RuntimeScripting
 
         private ActionToken ReadString()
         {
-            var quote = _text[_index];
-            _index++;
-            var start = _index;
-            while (_index < _text.Length && _text[_index] != quote)
-            {
-                if (_text[_index] == '\\' && _index + 1 < _text.Length)
-                    _index += 2;
-                else
-                    _index++;
-            }
-
-            var str = _text.Substring(start, _index - start);
-            if (_index < _text.Length && _text[_index] == quote)
-                _index++;
+            var str = ReadStringLiteral();
             return new ActionToken(ActionTokenType.String, str);
         }
 
         private ActionToken ReadNumber()
         {
-            var start = _index;
-            var hasDot = false;
-            if (_text[_index] == '.')
-            {
-                hasDot = true;
-                _index++;
-            }
-
-            while (_index < _text.Length)
-            {
-                var ch = _text[_index];
-                if (char.IsDigit(ch))
-                {
-                    _index++;
-                }
-                else if (ch == '.' && !hasDot)
-                {
-                    hasDot = true;
-                    _index++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            return new ActionToken(ActionTokenType.Number, _text.Substring(start, _index - start));
+            var number = ReadNumberLiteral();
+            return new ActionToken(ActionTokenType.Number, number);
         }
 
         private ActionToken ReadIdentifier()
@@ -109,15 +68,7 @@ namespace RuntimeScripting
             return new ActionToken(ActionTokenType.Identifier, _text.Substring(start, _index - start));
         }
 
-        private static bool IsIdentifierStart(char ch) => char.IsLetter(ch) || ch == '@' || ch == '#' || ch == '_' || ch == '[' || ch == ']';
-        private static bool IsIdentifierPart(char ch) => IsIdentifierStart(ch) || char.IsDigit(ch);
-        private bool PeekDigit() => _index + 1 < _text.Length && char.IsDigit(_text[_index + 1]);
-
-        private void SkipWhitespace()
-        {
-            while (_index < _text.Length && char.IsWhiteSpace(_text[_index]))
-                _index++;
-        }
+        private bool PeekDigit() => base.PeekDigit();
     }
 
     internal enum ActionTokenType
