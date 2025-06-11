@@ -77,34 +77,55 @@ namespace RuntimeScripting
 
         private static List<(string name, List<string> args)> ParseActionList(string text)
         {
+            var tokenizer = new ActionTokenizer(text);
             var list = new List<(string, List<string>)>();
-            var depth = 0;
-            var inString = false;
-            var stringChar = '\0';
-            var start = 0;
-            for (var i = 0; i <= text.Length; i++)
+            var token = tokenizer.Next();
+            while (token.Type != ActionTokenType.Eof)
             {
-                if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
+                if (token.Type != ActionTokenType.Identifier)
+                    throw new InvalidOperationException("Expected action name");
+
+                var name = token.Value;
+                token = tokenizer.Next();
+                var args = new List<string>();
+
+                if (token.Type == ActionTokenType.LParen)
                 {
-                    var part = text.Substring(start, i - start).Trim();
-                    if (part.Length > 0)
-                        list.Add(ParseActionExpr(part));
-                    start = i + 1;
-                }
-                else if (!inString && text[i] == '(')
-                    depth++;
-                else if (!inString && text[i] == ')')
-                    depth--;
-                else if (text[i] == '"' || text[i] == '\'')
-                {
-                    if (inString && text[i] == stringChar)
-                        inString = false;
-                    else if (!inString)
+                    var sb = new System.Text.StringBuilder();
+                    var depth = 1;
+                    token = tokenizer.Next();
+                    while (token.Type != ActionTokenType.Eof && depth > 0)
                     {
-                        inString = true;
-                        stringChar = text[i];
+                        if (token.Type == ActionTokenType.LParen)
+                        {
+                            depth++;
+                            sb.Append('(');
+                            token = tokenizer.Next();
+                            continue;
+                        }
+
+                        if (token.Type == ActionTokenType.RParen)
+                        {
+                            depth--;
+                            if (depth == 0)
+                                break;
+                            sb.Append(')');
+                            token = tokenizer.Next();
+                            continue;
+                        }
+
+                        sb.Append(token.Value);
+                        token = tokenizer.Next();
                     }
+
+                    args = ParseArgList(sb.ToString());
+                    if (token.Type == ActionTokenType.RParen)
+                        token = tokenizer.Next();
                 }
+
+                list.Add((name, args));
+                if (token.Type == ActionTokenType.Comma)
+                    token = tokenizer.Next();
             }
 
             return list;
@@ -112,17 +133,44 @@ namespace RuntimeScripting
 
         private static (string name, List<string> args) ParseActionExpr(string text)
         {
-            var open = text.IndexOf('(');
-            var name = open >= 0 ? text[..open].Trim() : text.Trim();
+            var tokenizer = new ActionTokenizer(text);
+            var token = tokenizer.Next();
+            if (token.Type != ActionTokenType.Identifier)
+                throw new InvalidOperationException("Invalid action expression");
+
+            var name = token.Value;
             var args = new List<string>();
-            if (open >= 0)
+            token = tokenizer.Next();
+            if (token.Type == ActionTokenType.LParen)
             {
-                var close = text.LastIndexOf(')');
-                if (close > open)
+                var sb = new System.Text.StringBuilder();
+                var depth = 1;
+                token = tokenizer.Next();
+                while (token.Type != ActionTokenType.Eof && depth > 0)
                 {
-                    var argContent = text.Substring(open + 1, close - open - 1);
-                    args = ParseArgList(argContent);
+                    if (token.Type == ActionTokenType.LParen)
+                    {
+                        depth++;
+                        sb.Append('(');
+                    }
+                    else if (token.Type == ActionTokenType.RParen)
+                    {
+                        depth--;
+                        if (depth == 0)
+                        {
+                            break;
+                        }
+                        sb.Append(')');
+                    }
+                    else
+                    {
+                        sb.Append(token.Value);
+                    }
+
+                    token = tokenizer.Next();
                 }
+
+                args = ParseArgList(sb.ToString());
             }
 
             return (name, args);
@@ -130,78 +178,73 @@ namespace RuntimeScripting
 
         private static List<string> ParseArgList(string text)
         {
+            var tokenizer = new ActionTokenizer(text);
             var list = new List<string>();
+            var token = tokenizer.Next();
+            var sb = new System.Text.StringBuilder();
             var depth = 0;
-            var inString = false;
-            var stringChar = '\0';
-            var start = 0;
-            for (var i = 0; i <= text.Length; i++)
+            while (token.Type != ActionTokenType.Eof)
             {
-                if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
+                if (token.Type == ActionTokenType.Comma && depth == 0)
                 {
-                    var part = text.Substring(start, i - start).Trim();
+                    var part = sb.ToString().Trim();
                     if (part.Length > 0)
                         list.Add(ScriptTokenizer.Unquote(part));
-                    start = i + 1;
+                    sb.Clear();
                 }
-                else if (!inString && text[i] == '(')
-                    depth++;
-                else if (!inString && text[i] == ')')
-                    depth--;
-                else if (text[i] == '"' || text[i] == '\'')
+                else
                 {
-                    if (inString && text[i] == stringChar)
-                        inString = false;
-                    else if (!inString)
-                    {
-                        inString = true;
-                        stringChar = text[i];
-                    }
+                    if (token.Type == ActionTokenType.LParen)
+                        depth++;
+                    else if (token.Type == ActionTokenType.RParen)
+                        depth--;
+
+                    sb.Append(token.Value);
                 }
+
+                token = tokenizer.Next();
             }
+
+            var last = sb.ToString().Trim();
+            if (last.Length > 0)
+                list.Add(ScriptTokenizer.Unquote(last));
 
             return list;
         }
 
         private static Dictionary<string, string> ParseModifierList(string text)
         {
+            var tokenizer = new ActionTokenizer(text);
             var dict = new Dictionary<string, string>();
-            var depth = 0;
-            var inString = false;
-            var stringChar = '\0';
-            var start = 0;
-            for (var i = 0; i <= text.Length; i++)
+            var token = tokenizer.Next();
+            while (token.Type != ActionTokenType.Eof)
             {
-                if (i == text.Length || (text[i] == ',' && depth == 0 && !inString))
-                {
-                    var part = text.Substring(start, i - start).Trim();
-                    if (part.Length > 0)
-                    {
-                        var eq = part.IndexOf('=');
-                        if (eq > 0)
-                        {
-                            var key = part[..eq].Trim();
-                            var value = part[(eq + 1)..].Trim();
-                            dict[key] = ScriptTokenizer.Unquote(value);
-                        }
-                    }
+                if (token.Type != ActionTokenType.Identifier)
+                    break;
 
-                    start = i + 1;
-                }
-                else if (!inString && text[i] == '(')
-                    depth++;
-                else if (!inString && text[i] == ')')
-                    depth--;
-                else if (text[i] == '"' || text[i] == '\'')
+                var key = token.Value;
+                token = tokenizer.Next();
+                if (token.Type != ActionTokenType.Assign)
+                    break;
+
+                token = tokenizer.Next();
+                var sb = new System.Text.StringBuilder();
+                var depth = 0;
+                while (token.Type != ActionTokenType.Eof && !(token.Type == ActionTokenType.Comma && depth == 0))
                 {
-                    if (inString && text[i] == stringChar)
-                        inString = false;
-                    else if (!inString)
-                    {
-                        inString = true;
-                        stringChar = text[i];
-                    }
+                    if (token.Type == ActionTokenType.LParen)
+                        depth++;
+                    else if (token.Type == ActionTokenType.RParen)
+                        depth--;
+
+                    sb.Append(token.Value);
+                    token = tokenizer.Next();
                 }
+
+                dict[key] = ScriptTokenizer.Unquote(sb.ToString().Trim());
+
+                if (token.Type == ActionTokenType.Comma)
+                    token = tokenizer.Next();
             }
 
             return dict;
