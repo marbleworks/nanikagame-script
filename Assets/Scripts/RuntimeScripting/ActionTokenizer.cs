@@ -15,18 +15,18 @@ namespace RuntimeScripting
         public ActionToken Next()
         {
             SkipWhitespace();
-            if (Index >= Text.Length)
+            if (IsAtEnd)
             {
                 return new ActionToken(ActionTokenType.Eof, string.Empty);
             }
 
-            var c = Text[Index];
+            var c = Current;
             switch (c)
             {
-                case '(': Index++; return new ActionToken(ActionTokenType.LParen, "(");
-                case ')': Index++; return new ActionToken(ActionTokenType.RParen, ")");
-                case ',': Index++; return new ActionToken(ActionTokenType.Comma, ",");
-                case '=': Index++; return new ActionToken(ActionTokenType.Assign, "=");
+                case '(': Advance(); return new ActionToken(ActionTokenType.LParen, "(");
+                case ')': Advance(); return new ActionToken(ActionTokenType.RParen, ")");
+                case ',': Advance(); return new ActionToken(ActionTokenType.Comma, ",");
+                case '=': Advance(); return new ActionToken(ActionTokenType.Assign, "=");
                 case '"':
                 case '\'':
                     return ReadString();
@@ -59,13 +59,8 @@ namespace RuntimeScripting
 
         private ActionToken ReadIdentifier()
         {
-            var start = Index;
-            Index++;
-            while (Index < Text.Length && IsIdentifierPart(Text[Index]))
-            {
-                Index++;
-            }
-            return new ActionToken(ActionTokenType.Identifier, Text.Substring(start, Index - start));
+            var ident = ReadIdentifierLiteral();
+            return new ActionToken(ActionTokenType.Identifier, ident);
         }
     }
 
