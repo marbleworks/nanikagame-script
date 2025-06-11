@@ -62,7 +62,7 @@ namespace RuntimeScripting
                 while (true)
                 {
                     var tk = _tokenizer.PeekToken();
-                    if (tk.Type == ScriptTokenType.Eof || tk.Type == ScriptTokenType.LBracket)
+                    if (tk.Type is ScriptTokenType.Eof or ScriptTokenType.LBracket)
                         break;
                     if (tk.Type == ScriptTokenType.If)
                     {

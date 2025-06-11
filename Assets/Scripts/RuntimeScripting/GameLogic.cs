@@ -8,7 +8,7 @@ namespace RuntimeScripting
     /// Placeholder for game-specific logic. In a real project these methods
     /// would interact with the rest of the game systems.
     /// </summary>
-    public class GameLogic
+    public class GameLogic : IGameLogic
     {
         private readonly Dictionary<string, Action<GameLogic, ActionParameter>> _actions = new();
         private readonly Dictionary<string, Func<GameLogic, ActionParameter, float>> _functions = new();
@@ -109,7 +109,8 @@ namespace RuntimeScripting
             return param;
         }
 
-        internal void ExecuteAction(ParsedAction pa)
+        /// <inheritdoc/>
+        public void ExecuteAction(ParsedAction pa)
         {
             ExecuteAction(CreateParameter(pa));
         }

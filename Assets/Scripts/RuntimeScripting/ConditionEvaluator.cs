@@ -1,6 +1,3 @@
-using System;
-using System.Globalization;
-
 namespace RuntimeScripting
 {
     /// <summary>
@@ -8,7 +5,7 @@ namespace RuntimeScripting
     /// </summary>
     public static class ConditionEvaluator
     {
-        public static bool Evaluate(string expression, GameLogic gameLogic)
+        public static bool Evaluate(string expression, IGameLogic gameLogic)
         {
             if (string.IsNullOrWhiteSpace(expression))
             {

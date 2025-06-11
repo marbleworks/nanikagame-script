@@ -12,7 +12,7 @@ namespace RuntimeScripting
         /// <summary>
         /// Evaluates the given expression and returns the floored integer result.
         /// </summary>
-        public static int Evaluate(string expression, GameLogic gameLogic)
+        public static int Evaluate(string expression, IGameLogic gameLogic)
         {
             return (int) Math.Floor(EvaluateFloat(expression, gameLogic));
         }
@@ -21,7 +21,7 @@ namespace RuntimeScripting
         /// Evaluates the given expression as a float.
         /// Returns 0 on null/empty input or parsing errors.
         /// </summary>
-        public static float EvaluateFloat(string expression, GameLogic gameLogic)
+        public static float EvaluateFloat(string expression, IGameLogic gameLogic)
         {
             if (string.IsNullOrWhiteSpace(expression))
             {
