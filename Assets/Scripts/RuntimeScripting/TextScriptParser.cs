@@ -58,7 +58,6 @@ namespace RuntimeScripting
                     _events.Add(name, pe);
                 }
 
-                _tokenizer.SkipLine();
                 while (true)
                 {
                     var tk = _tokenizer.PeekToken();
