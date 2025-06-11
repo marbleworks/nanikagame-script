@@ -1,5 +1,3 @@
-using System;
-
 namespace RuntimeScripting
 {
     /// <summary>
@@ -7,12 +5,12 @@ namespace RuntimeScripting
     /// </summary>
     internal abstract class TokenizerBase
     {
-        protected readonly string _text;
-        protected int _index;
+        protected readonly string Text;
+        protected int Index;
 
         protected TokenizerBase(string text)
         {
-            _text = text ?? string.Empty;
+            Text = text ?? string.Empty;
         }
 
         /// <summary>
@@ -20,9 +18,9 @@ namespace RuntimeScripting
         /// </summary>
         protected void SkipWhitespace()
         {
-            while (_index < _text.Length && char.IsWhiteSpace(_text[_index]))
+            while (Index < Text.Length && char.IsWhiteSpace(Text[Index]))
             {
-                _index++;
+                Index++;
             }
         }
 
@@ -31,24 +29,24 @@ namespace RuntimeScripting
         /// </summary>
         protected string ReadStringLiteral()
         {
-            var quote = _text[_index];
-            _index++;
-            var start = _index;
-            while (_index < _text.Length && _text[_index] != quote)
+            var quote = Text[Index];
+            Index++;
+            var start = Index;
+            while (Index < Text.Length && Text[Index] != quote)
             {
-                if (_text[_index] == '\\' && _index + 1 < _text.Length)
+                if (Text[Index] == '\\' && Index + 1 < Text.Length)
                 {
-                    _index += 2;
+                    Index += 2;
                 }
                 else
                 {
-                    _index++;
+                    Index++;
                 }
             }
 
-            var str = _text.Substring(start, _index - start);
-            if (_index < _text.Length && _text[_index] == quote)
-                _index++;
+            var str = Text.Substring(start, Index - start);
+            if (Index < Text.Length && Text[Index] == quote)
+                Index++;
             return str;
         }
 
@@ -57,25 +55,25 @@ namespace RuntimeScripting
         /// </summary>
         protected string ReadNumberLiteral()
         {
-            var start = _index;
+            var start = Index;
             var hasDot = false;
-            if (_text[_index] == '.')
+            if (Text[Index] == '.')
             {
                 hasDot = true;
-                _index++;
+                Index++;
             }
 
-            while (_index < _text.Length)
+            while (Index < Text.Length)
             {
-                var ch = _text[_index];
+                var ch = Text[Index];
                 if (char.IsDigit(ch))
                 {
-                    _index++;
+                    Index++;
                 }
                 else if (ch == '.' && !hasDot)
                 {
                     hasDot = true;
-                    _index++;
+                    Index++;
                 }
                 else
                 {
@@ -83,7 +81,7 @@ namespace RuntimeScripting
                 }
             }
 
-            return _text.Substring(start, _index - start);
+            return Text.Substring(start, Index - start);
         }
 
         /// <summary>
@@ -92,14 +90,14 @@ namespace RuntimeScripting
         /// </summary>
         protected char Peek(int offset)
         {
-            var pos = _index + offset;
-            return pos < _text.Length ? _text[pos] : '\0';
+            var pos = Index + offset;
+            return pos < Text.Length ? Text[pos] : '\0';
         }
 
         /// <summary>
         /// Returns true if the next character is a digit.
         /// </summary>
-        protected bool PeekDigit() => _index + 1 < _text.Length && char.IsDigit(_text[_index + 1]);
+        protected bool PeekDigit() => Index + 1 < Text.Length && char.IsDigit(Text[Index + 1]);
 
         /// <summary>
         /// Determines if the character can begin an identifier.

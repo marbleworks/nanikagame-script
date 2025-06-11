@@ -15,12 +15,12 @@ namespace RuntimeScripting
         {
             SkipWhitespace();
 
-            if (_index >= _text.Length)
+            if (Index >= Text.Length)
             {
                 return new ExprToken(ExprTokenType.Eof, string.Empty);
             }
 
-            var ch = _text[_index];
+            var ch = Text[Index];
             return ch switch
             {
                 '+' => ReturnToken(ExprTokenType.Plus, "+"),
@@ -33,13 +33,13 @@ namespace RuntimeScripting
                 '"' => ReadString(),
                 _ when char.IsDigit(ch) || (ch == '.' && PeekDigit()) => ReadNumber(),
                 _ when char.IsLetter(ch) || IsIdentifierStart(ch) => ReadIdentifier(),
-                _ => throw new InvalidOperationException($"Invalid character at position {_index}: '{ch}'")
+                _ => throw new InvalidOperationException($"Invalid character at position {Index}: '{ch}'")
             };
         }
 
         private ExprToken ReturnToken(ExprTokenType type, string value)
         {
-            _index++;
+            Index++;
             return new ExprToken(type, value);
         }
 
@@ -55,44 +55,42 @@ namespace RuntimeScripting
             return new ExprToken(ExprTokenType.Number, number);
         }
 
-        private bool PeekDigit() => base.PeekDigit();
-
         private ExprToken ReadIdentifier()
         {
-            var start = _index;
-            while (_index < _text.Length && (char.IsLetterOrDigit(_text[_index]) || IsIdentifierPart(_text[_index])))
+            var start = Index;
+            while (Index < Text.Length && (char.IsLetterOrDigit(Text[Index]) || IsIdentifierPart(Text[Index])))
             {
-                _index++;
+                Index++;
             }
 
-            return new ExprToken(ExprTokenType.Identifier, _text[start.._index]);
-        }        }
-    }
-
-    internal enum ExprTokenType
-    {
-        Eof,
-        Number,
-        Identifier,
-        String,
-        Plus,
-        Minus,
-        Star,
-        Slash,
-        LParen,
-        RParen,
-        Comma
-    }
-
-    internal readonly struct ExprToken
-    {
-        public ExprTokenType Type { get; }
-        public string Value { get; }
-
-        public ExprToken(ExprTokenType type, string value)
-        {
-            Type = type;
-            Value = value;
+            return new ExprToken(ExprTokenType.Identifier, Text[start..Index]);
         }
+    }
+}
+
+internal enum ExprTokenType
+{
+    Eof,
+    Number,
+    Identifier,
+    String,
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    LParen,
+    RParen,
+    Comma
+}
+
+internal readonly struct ExprToken
+{
+    public ExprTokenType Type { get; }
+    public string Value { get; }
+
+    public ExprToken(ExprTokenType type, string value)
+    {
+        Type = type;
+        Value = value;
     }
 }

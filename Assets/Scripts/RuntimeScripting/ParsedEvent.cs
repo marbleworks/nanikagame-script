@@ -8,6 +8,6 @@ namespace RuntimeScripting
     public class ParsedEvent
     {
         public string EventName { get; set; }
-        public List<ParsedAction> Actions { get; } = new List<ParsedAction>();
+        public List<ParsedAction> Actions { get; } = new();
     }
 }

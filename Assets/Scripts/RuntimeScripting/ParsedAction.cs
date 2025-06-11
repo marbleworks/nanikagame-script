@@ -8,7 +8,7 @@ namespace RuntimeScripting
     public class ParsedAction
     {
         public string FunctionName { get; set; }
-        public List<string> Args { get; } = new List<string>();
+        public List<string> Args { get; } = new();
         public float Interval { get; set; }
         public float Period { get; set; }
         public string PeriodFuncRaw { get; set; }

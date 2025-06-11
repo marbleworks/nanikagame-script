@@ -14,22 +14,22 @@ namespace RuntimeScripting
         public ConditionToken Next()
         {
             SkipWhitespace();
-            if (_index >= _text.Length)
+            if (Index >= Text.Length)
             {
                 return new ConditionToken(ConditionTokenType.Eof, string.Empty);
             }
 
-            var c = _text[_index];
+            var c = Text[Index];
             switch (c)
             {
-                case '(': _index++; return new ConditionToken(ConditionTokenType.LParen, "(");
-                case ')': _index++; return new ConditionToken(ConditionTokenType.RParen, ")");
-                case ',': _index++; return new ConditionToken(ConditionTokenType.Comma, ",");
-                case '!': _index++; return new ConditionToken(ConditionTokenType.Not, "!");
-                case '+': _index++; return new ConditionToken(ConditionTokenType.Plus, "+");
-                case '-': _index++; return new ConditionToken(ConditionTokenType.Minus, "-");
-                case '*': _index++; return new ConditionToken(ConditionTokenType.Star, "*");
-                case '/': _index++; return new ConditionToken(ConditionTokenType.Slash, "/");
+                case '(': Index++; return new ConditionToken(ConditionTokenType.LParen, "(");
+                case ')': Index++; return new ConditionToken(ConditionTokenType.RParen, ")");
+                case ',': Index++; return new ConditionToken(ConditionTokenType.Comma, ",");
+                case '!': Index++; return new ConditionToken(ConditionTokenType.Not, "!");
+                case '+': Index++; return new ConditionToken(ConditionTokenType.Plus, "+");
+                case '-': Index++; return new ConditionToken(ConditionTokenType.Minus, "-");
+                case '*': Index++; return new ConditionToken(ConditionTokenType.Star, "*");
+                case '/': Index++; return new ConditionToken(ConditionTokenType.Slash, "/");
                 case '"':
                     var str = ReadStringLiteral();
                     return new ConditionToken(ConditionTokenType.String, str);
@@ -37,13 +37,13 @@ namespace RuntimeScripting
 
             if (c == '&' && Peek(1) == '&')
             {
-                _index += 2;
+                Index += 2;
                 return new ConditionToken(ConditionTokenType.And, "&&");
             }
 
             if (c == '|' && Peek(1) == '|')
             {
-                _index += 2;
+                Index += 2;
                 return new ConditionToken(ConditionTokenType.Or, "||");
             }
 
@@ -51,10 +51,10 @@ namespace RuntimeScripting
             {
                 if (Peek(1) == '=')
                 {
-                    _index += 2;
+                    Index += 2;
                     return new ConditionToken(ConditionTokenType.LessEqual, "<=");
                 }
-                _index++;
+                Index++;
                 return new ConditionToken(ConditionTokenType.Less, "<");
             }
 
@@ -62,16 +62,16 @@ namespace RuntimeScripting
             {
                 if (Peek(1) == '=')
                 {
-                    _index += 2;
+                    Index += 2;
                     return new ConditionToken(ConditionTokenType.GreaterEqual, ">=");
                 }
-                _index++;
+                Index++;
                 return new ConditionToken(ConditionTokenType.Greater, ">");
             }
 
             if (c == '=' && Peek(1) == '=')
             {
-                _index += 2;
+                Index += 2;
                 return new ConditionToken(ConditionTokenType.Equal, "==");
             }
 
@@ -83,18 +83,16 @@ namespace RuntimeScripting
 
             if (char.IsLetter(c) || c == '@' || c == '#' || c == '_' || c == '[' || c == ']' || c == '=')
             {
-                var start = _index;
-                while (_index < _text.Length && (char.IsLetterOrDigit(_text[_index]) || "_@#[]=".IndexOf(_text[_index]) >= 0))
+                var start = Index;
+                while (Index < Text.Length && (char.IsLetterOrDigit(Text[Index]) || "_@#[]=".IndexOf(Text[Index]) >= 0))
                 {
-                    _index++;
+                    Index++;
                 }
-                return new ConditionToken(ConditionTokenType.Identifier, _text.Substring(start, _index - start));
+                return new ConditionToken(ConditionTokenType.Identifier, Text.Substring(start, Index - start));
             }
 
-            throw new InvalidOperationException($"Invalid character '{c}' at position {_index}");
+            throw new InvalidOperationException($"Invalid character '{c}' at position {Index}");
         }
-
-        private bool PeekDigit() => base.PeekDigit();
     }
 
     internal enum ConditionTokenType

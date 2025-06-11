@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 
 namespace RuntimeScripting
 {
@@ -20,45 +19,63 @@ namespace RuntimeScripting
         /// </summary>
         public ScriptToken NextToken()
         {
-            if (_peeked.HasValue)
+            while (true)
             {
-                var t = _peeked.Value;
-                _peeked = null;
-                return t;
+                if (_peeked.HasValue)
+                {
+                    var t = _peeked.Value;
+                    _peeked = null;
+                    return t;
+                }
+
+                SkipWhite();
+                if (Index >= Text.Length) return new ScriptToken(ScriptTokenType.Eof, string.Empty);
+
+                var c = Text[Index];
+
+                switch (c)
+                {
+                    case '[':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.LBracket, "[");
+                    case ']':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.RBracket, "]");
+                    case '(':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.LParen, "(");
+                    case ')':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.RParen, ")");
+                    case '{':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.LBrace, "{");
+                    case '}':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.RBrace, "}");
+                    case ',':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.Comma, ",");
+                    case ';':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.Semicolon, ";");
+                    case '=':
+                        Index++;
+                        return new ScriptToken(ScriptTokenType.Assign, "=");
+                    case '#':
+                        SkipLine();
+                        continue;
+                    case '"':
+                    case '\'':
+                        return ReadString();
+                }
+
+                if (char.IsDigit(c) || (c == '.' && Index + 1 < Text.Length && char.IsDigit(Text[Index + 1]))) return ReadNumber();
+
+                if (char.IsLetter(c) || c == '_' || c == '@' || c == '#') return ReadIdentifier();
+
+                throw new InvalidOperationException($"Invalid character '{c}' at position {Index}");
             }
-
-            SkipWhite();
-            if (_index >= _text.Length)
-                return new ScriptToken(ScriptTokenType.Eof, string.Empty);
-
-            var c = _text[_index];
-
-            switch (c)
-            {
-                case '[': _index++; return new ScriptToken(ScriptTokenType.LBracket, "[");
-                case ']': _index++; return new ScriptToken(ScriptTokenType.RBracket, "]");
-                case '(': _index++; return new ScriptToken(ScriptTokenType.LParen, "(");
-                case ')': _index++; return new ScriptToken(ScriptTokenType.RParen, ")");
-                case '{': _index++; return new ScriptToken(ScriptTokenType.LBrace, "{");
-                case '}': _index++; return new ScriptToken(ScriptTokenType.RBrace, "}");
-                case ',': _index++; return new ScriptToken(ScriptTokenType.Comma, ",");
-                case ';': _index++; return new ScriptToken(ScriptTokenType.Semicolon, ";");
-                case '=': _index++; return new ScriptToken(ScriptTokenType.Assign, "=");
-                case '#':
-                    SkipLine();
-                    return NextToken();
-                case '"':
-                case '\'':
-                    return ReadString();
-            }
-
-            if (char.IsDigit(c) || (c == '.' && _index + 1 < _text.Length && char.IsDigit(_text[_index + 1])))
-                return ReadNumber();
-
-            if (char.IsLetter(c) || c == '_' || c == '@' || c == '#')
-                return ReadIdentifier();
-
-            throw new InvalidOperationException($"Invalid character '{c}' at position {_index}");
         }
 
         /// <summary>
@@ -66,8 +83,7 @@ namespace RuntimeScripting
         /// </summary>
         public ScriptToken PeekToken()
         {
-            if (!_peeked.HasValue)
-                _peeked = NextToken();
+            _peeked ??= NextToken();
             return _peeked.Value;
         }
 
@@ -78,13 +94,13 @@ namespace RuntimeScripting
         {
             var token = NextToken();
             if (token.Type != type)
-                throw new Exception($"Expected token {type} at {_index}");
+                throw new Exception($"Expected token {type} at {Index}");
         }
 
         /// <summary>
         /// Gets the current character or null character if at end of text.
         /// </summary>
-        public char Peek() => _index >= _text.Length ? '\0' : _text[_index];
+        public char Peek() => Index >= Text.Length ? '\0' : Text[Index];
 
         /// <summary>
         /// Skips whitespace characters and returns true if not at end.
@@ -92,7 +108,7 @@ namespace RuntimeScripting
         public bool SkipWhite()
         {
             SkipWhitespace();
-            return _index < _text.Length;
+            return Index < Text.Length;
         }
 
         /// <summary>
@@ -100,10 +116,10 @@ namespace RuntimeScripting
         /// </summary>
         public void SkipLine()
         {
-            while (_index < _text.Length && _text[_index] != '\n')
-                _index++;
-            if (_index < _text.Length)
-                _index++;
+            while (Index < Text.Length && Text[Index] != '\n')
+                Index++;
+            if (Index < Text.Length)
+                Index++;
             _peeked = null;
         }
 
@@ -113,7 +129,7 @@ namespace RuntimeScripting
         public bool StartsWith(string s)
         {
             SkipWhite();
-            return string.Compare(_text, _index, s, 0, s.Length, StringComparison.Ordinal) == 0;
+            return string.Compare(Text, Index, s, 0, s.Length, StringComparison.Ordinal) == 0;
         }
 
         /// <summary>
@@ -121,10 +137,10 @@ namespace RuntimeScripting
         /// </summary>
         public string ReadUntil(char c)
         {
-            var start = _index;
-            while (_index < _text.Length && _text[_index] != c)
-                _index++;
-            return _text.Substring(start, _index - start);
+            var start = Index;
+            while (Index < Text.Length && Text[Index] != c)
+                Index++;
+            return Text.Substring(start, Index - start);
         }
 
         /// <summary>
@@ -134,20 +150,20 @@ namespace RuntimeScripting
         public string ReadEnclosed(char open, char close)
         {
             var depth = 1;
-            var start = _index;
+            var start = Index;
             var inString = false;
             var stringChar = '\0';
 
-            while (_index < _text.Length)
+            while (Index < Text.Length)
             {
-                var ch = _text[_index];
+                var ch = Text[Index];
 
                 if (inString)
                 {
-                    if (ch == '\\' && _index + 1 < _text.Length)
+                    if (ch == '\\' && Index + 1 < Text.Length)
                     {
                         // Skip escaped characters inside strings
-                        _index += 2;
+                        Index += 2;
                         continue;
                     }
 
@@ -158,7 +174,7 @@ namespace RuntimeScripting
                 }
                 else
                 {
-                    if (ch == '"' || ch == '\'')
+                    if (ch is '"' or '\'')
                     {
                         inString = true;
                         stringChar = ch;
@@ -172,15 +188,15 @@ namespace RuntimeScripting
                         depth--;
                         if (depth == 0)
                         {
-                            return _text.Substring(start, _index - start);
+                            return Text.Substring(start, Index - start);
                         }
                     }
                 }
 
-                _index++;
+                Index++;
             }
 
-            return _text[start..];
+            return Text[start..];
         }
 
         /// <summary>
@@ -189,9 +205,9 @@ namespace RuntimeScripting
         public void Expect(char c)
         {
             SkipWhite();
-            if (_index >= _text.Length || _text[_index] != c)
-                throw new Exception($"Expected '{c}' at {_index}");
-            _index++;
+            if (Index >= Text.Length || Text[Index] != c)
+                throw new Exception($"Expected '{c}' at {Index}");
+            Index++;
         }
 
         /// <summary>
@@ -202,11 +218,11 @@ namespace RuntimeScripting
             SkipWhite();
             for (var i = 0; i < s.Length; i++)
             {
-                if (_index + i >= _text.Length || _text[_index + i] != s[i])
-                    throw new Exception($"Expected '{s}' at {_index}");
+                if (Index + i >= Text.Length || Text[Index + i] != s[i])
+                    throw new Exception($"Expected '{s}' at {Index}");
             }
 
-            _index += s.Length;
+            Index += s.Length;
         }
 
         /// <summary>
@@ -240,13 +256,14 @@ namespace RuntimeScripting
 
         private ScriptToken ReadIdentifier()
         {
-            var start = _index;
-            while (_index < _text.Length && (char.IsLetterOrDigit(_text[_index]) || _text[_index] == '_' || _text[_index] == '@' || _text[_index] == '#'))
+            var start = Index;
+            while (Index < Text.Length && (char.IsLetterOrDigit(Text[Index]) || Text[Index] == '_' ||
+                                           Text[Index] == '@' || Text[Index] == '#'))
             {
-                _index++;
+                Index++;
             }
 
-            var ident = _text.Substring(start, _index - start);
+            var ident = Text.Substring(start, Index - start);
             return ident switch
             {
                 "if" => new ScriptToken(ScriptTokenType.If, ident),
@@ -257,37 +274,37 @@ namespace RuntimeScripting
             };
         }
     }
-}
 
-internal enum ScriptTokenType
-{
-    Eof,
-    Identifier,
-    Number,
-    String,
-    LBracket,
-    RBracket,
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    Comma,
-    Semicolon,
-    Assign,
-    If,
-    Else,
-    Act,
-    Mod
-}
-
-internal readonly struct ScriptToken
-{
-    public ScriptTokenType Type { get; }
-    public string Value { get; }
-
-    public ScriptToken(ScriptTokenType type, string value)
+    internal enum ScriptTokenType
     {
-        Type = type;
-        Value = value;
+        Eof,
+        Identifier,
+        Number,
+        String,
+        LBracket,
+        RBracket,
+        LParen,
+        RParen,
+        LBrace,
+        RBrace,
+        Comma,
+        Semicolon,
+        Assign,
+        If,
+        Else,
+        Act,
+        Mod
+    }
+
+    internal readonly struct ScriptToken
+    {
+        public ScriptTokenType Type { get; }
+        public string Value { get; }
+
+        public ScriptToken(ScriptTokenType type, string value)
+        {
+            Type = type;
+            Value = value;
+        }
     }
 }

@@ -15,18 +15,18 @@ namespace RuntimeScripting
         public ActionToken Next()
         {
             SkipWhitespace();
-            if (_index >= _text.Length)
+            if (Index >= Text.Length)
             {
                 return new ActionToken(ActionTokenType.Eof, string.Empty);
             }
 
-            var c = _text[_index];
+            var c = Text[Index];
             switch (c)
             {
-                case '(': _index++; return new ActionToken(ActionTokenType.LParen, "(");
-                case ')': _index++; return new ActionToken(ActionTokenType.RParen, ")");
-                case ',': _index++; return new ActionToken(ActionTokenType.Comma, ",");
-                case '=': _index++; return new ActionToken(ActionTokenType.Assign, "=");
+                case '(': Index++; return new ActionToken(ActionTokenType.LParen, "(");
+                case ')': Index++; return new ActionToken(ActionTokenType.RParen, ")");
+                case ',': Index++; return new ActionToken(ActionTokenType.Comma, ",");
+                case '=': Index++; return new ActionToken(ActionTokenType.Assign, "=");
                 case '"':
                 case '\'':
                     return ReadString();
@@ -42,7 +42,7 @@ namespace RuntimeScripting
                 return ReadIdentifier();
             }
 
-            throw new InvalidOperationException($"Invalid character '{c}' at {_index}");
+            throw new InvalidOperationException($"Invalid character '{c}' at {Index}");
         }
 
         private ActionToken ReadString()
@@ -59,16 +59,14 @@ namespace RuntimeScripting
 
         private ActionToken ReadIdentifier()
         {
-            var start = _index;
-            _index++;
-            while (_index < _text.Length && IsIdentifierPart(_text[_index]))
+            var start = Index;
+            Index++;
+            while (Index < Text.Length && IsIdentifierPart(Text[Index]))
             {
-                _index++;
+                Index++;
             }
-            return new ActionToken(ActionTokenType.Identifier, _text.Substring(start, _index - start));
+            return new ActionToken(ActionTokenType.Identifier, Text.Substring(start, Index - start));
         }
-
-        private bool PeekDigit() => base.PeekDigit();
     }
 
     internal enum ActionTokenType
