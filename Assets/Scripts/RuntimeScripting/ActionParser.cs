@@ -20,26 +20,23 @@ namespace RuntimeScripting
         /// </summary>
         public List<ParsedAction> Parse()
         {
-            _tokenizer.ExpectString("act");
-            _tokenizer.SkipWhite();
-            _tokenizer.Expect('{');
+            _tokenizer.Expect(ScriptTokenType.Act);
+            _tokenizer.Expect(ScriptTokenType.LBrace);
             var actionsContent = _tokenizer.ReadEnclosed('{', '}');
-            _tokenizer.Expect('}');
+            _tokenizer.Expect(ScriptTokenType.RBrace);
             var actions = ParseActionList(actionsContent);
-            _tokenizer.SkipWhite();
             Dictionary<string, string> mods = null;
-            if (_tokenizer.StartsWith("mod"))
+            if (_tokenizer.PeekToken().Type == ScriptTokenType.Mod)
             {
-                _tokenizer.ExpectString("mod");
-                _tokenizer.SkipWhite();
-                _tokenizer.Expect('{');
+                _tokenizer.Expect(ScriptTokenType.Mod);
+                _tokenizer.Expect(ScriptTokenType.LBrace);
                 var modContent = _tokenizer.ReadEnclosed('{', '}');
-                _tokenizer.Expect('}');
+                _tokenizer.Expect(ScriptTokenType.RBrace);
                 mods = ParseModifierList(modContent);
             }
 
-            _tokenizer.Expect(';');
-            _tokenizer.SkipWhite();
+            _tokenizer.Expect(ScriptTokenType.Semicolon);
+
 
             var list = new List<ParsedAction>();
             foreach (var act in actions)

@@ -11,10 +11,77 @@ namespace RuntimeScripting
     {
         private readonly string _text;
         private int _index;
+        private ScriptToken? _peeked;
 
         public ScriptTokenizer(string text)
         {
             _text = text ?? throw new ArgumentNullException(nameof(text));
+        }
+
+        /// <summary>
+        /// Returns the next token in the stream.
+        /// </summary>
+        public ScriptToken NextToken()
+        {
+            if (_peeked.HasValue)
+            {
+                var t = _peeked.Value;
+                _peeked = null;
+                return t;
+            }
+
+            SkipWhite();
+            if (_index >= _text.Length)
+                return new ScriptToken(ScriptTokenType.Eof, string.Empty);
+
+            var c = _text[_index];
+
+            switch (c)
+            {
+                case '[': _index++; return new ScriptToken(ScriptTokenType.LBracket, "[");
+                case ']': _index++; return new ScriptToken(ScriptTokenType.RBracket, "]");
+                case '(': _index++; return new ScriptToken(ScriptTokenType.LParen, "(");
+                case ')': _index++; return new ScriptToken(ScriptTokenType.RParen, ")");
+                case '{': _index++; return new ScriptToken(ScriptTokenType.LBrace, "{");
+                case '}': _index++; return new ScriptToken(ScriptTokenType.RBrace, "}");
+                case ',': _index++; return new ScriptToken(ScriptTokenType.Comma, ",");
+                case ';': _index++; return new ScriptToken(ScriptTokenType.Semicolon, ";");
+                case '=': _index++; return new ScriptToken(ScriptTokenType.Assign, "=");
+                case '#':
+                    SkipLine();
+                    return NextToken();
+                case '"':
+                case '\'':
+                    return ReadString();
+            }
+
+            if (char.IsDigit(c) || (c == '.' && _index + 1 < _text.Length && char.IsDigit(_text[_index + 1])))
+                return ReadNumber();
+
+            if (char.IsLetter(c) || c == '_' || c == '@' || c == '#')
+                return ReadIdentifier();
+
+            throw new InvalidOperationException($"Invalid character '{c}' at position {_index}");
+        }
+
+        /// <summary>
+        /// Peeks the next token without consuming it.
+        /// </summary>
+        public ScriptToken PeekToken()
+        {
+            if (!_peeked.HasValue)
+                _peeked = NextToken();
+            return _peeked.Value;
+        }
+
+        /// <summary>
+        /// Consumes the next token and ensures it matches the expected type.
+        /// </summary>
+        public void Expect(ScriptTokenType type)
+        {
+            var token = NextToken();
+            if (token.Type != type)
+                throw new Exception($"Expected token {type} at {_index}");
         }
 
         /// <summary>
@@ -44,6 +111,7 @@ namespace RuntimeScripting
                 _index++;
             if (_index < _text.Length)
                 _index++;
+            _peeked = null;
         }
 
         /// <summary>
@@ -164,5 +232,112 @@ namespace RuntimeScripting
 
             return value;
         }
+
+        private ScriptToken ReadString()
+        {
+            var quote = _text[_index];
+            _index++;
+            var start = _index;
+            while (_index < _text.Length && _text[_index] != quote)
+            {
+                if (_text[_index] == '\\' && _index + 1 < _text.Length)
+                {
+                    _index += 2;
+                }
+                else
+                {
+                    _index++;
+                }
+            }
+
+            var str = _text.Substring(start, _index - start);
+            if (_index < _text.Length && _text[_index] == quote)
+                _index++;
+
+            return new ScriptToken(ScriptTokenType.String, str);
+        }
+
+        private ScriptToken ReadNumber()
+        {
+            var start = _index;
+            var hasDot = false;
+            if (_text[_index] == '.')
+            {
+                hasDot = true;
+                _index++;
+            }
+
+            while (_index < _text.Length)
+            {
+                var ch = _text[_index];
+                if (char.IsDigit(ch))
+                {
+                    _index++;
+                }
+                else if (ch == '.' && !hasDot)
+                {
+                    hasDot = true;
+                    _index++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return new ScriptToken(ScriptTokenType.Number, _text.Substring(start, _index - start));
+        }
+
+        private ScriptToken ReadIdentifier()
+        {
+            var start = _index;
+            while (_index < _text.Length && (char.IsLetterOrDigit(_text[_index]) || _text[_index] == '_' || _text[_index] == '@' || _text[_index] == '#'))
+            {
+                _index++;
+            }
+
+            var ident = _text.Substring(start, _index - start);
+            return ident switch
+            {
+                "if" => new ScriptToken(ScriptTokenType.If, ident),
+                "else" => new ScriptToken(ScriptTokenType.Else, ident),
+                "act" => new ScriptToken(ScriptTokenType.Act, ident),
+                "mod" => new ScriptToken(ScriptTokenType.Mod, ident),
+                _ => new ScriptToken(ScriptTokenType.Identifier, ident)
+            };
+        }
+    }
+}
+
+internal enum ScriptTokenType
+{
+    Eof,
+    Identifier,
+    Number,
+    String,
+    LBracket,
+    RBracket,
+    LParen,
+    RParen,
+    LBrace,
+    RBrace,
+    Comma,
+    Semicolon,
+    Assign,
+    If,
+    Else,
+    Act,
+    Mod
+}
+
+internal readonly struct ScriptToken
+{
+    public ScriptTokenType Type { get; }
+    public string Value { get; }
+
+    public ScriptToken(ScriptTokenType type, string value)
+    {
+        Type = type;
+        Value = value;
     }
 }

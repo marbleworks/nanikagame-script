@@ -29,9 +29,12 @@ namespace RuntimeScripting
 
             public Dictionary<string, ParsedEvent> Parse()
             {
-                while (_tokenizer.SkipWhite())
+                while (true)
                 {
-                    if (_tokenizer.Peek() == '[')
+                    var token = _tokenizer.PeekToken();
+                    if (token.Type == ScriptTokenType.Eof)
+                        break;
+                    if (token.Type == ScriptTokenType.LBracket)
                     {
                         ParseEventSection();
                     }
@@ -46,9 +49,9 @@ namespace RuntimeScripting
 
             private void ParseEventSection()
             {
-                _tokenizer.Expect('[');
+                _tokenizer.Expect(ScriptTokenType.LBracket);
                 var name = _tokenizer.ReadUntil(']').Trim();
-                _tokenizer.Expect(']');
+                _tokenizer.Expect(ScriptTokenType.RBracket);
                 if (!_events.TryGetValue(name, out var pe))
                 {
                     pe = new ParsedEvent { EventName = name };
@@ -56,15 +59,16 @@ namespace RuntimeScripting
                 }
 
                 _tokenizer.SkipLine();
-                while (_tokenizer.SkipWhite())
+                while (true)
                 {
-                    if (_tokenizer.StartsWith("["))
+                    var tk = _tokenizer.PeekToken();
+                    if (tk.Type == ScriptTokenType.Eof || tk.Type == ScriptTokenType.LBracket)
                         break;
-                    if (_tokenizer.StartsWith("if"))
+                    if (tk.Type == ScriptTokenType.If)
                     {
                         ParseIfStatement(pe);
                     }
-                    else if (_tokenizer.StartsWith("act"))
+                    else if (tk.Type == ScriptTokenType.Act)
                     {
                         AddActions(pe, new ActionParser(_tokenizer).Parse());
                     }
@@ -86,23 +90,21 @@ namespace RuntimeScripting
 
             private void ParseIfStatement(ParsedEvent pe)
             {
-                _tokenizer.ExpectString("if");
-                _tokenizer.SkipWhite();
-                _tokenizer.Expect('(');
+                _tokenizer.Expect(ScriptTokenType.If);
+                _tokenizer.Expect(ScriptTokenType.LParen);
                 var expr = _tokenizer.ReadEnclosed('(', ')');
-                _tokenizer.Expect(')');
-                _tokenizer.SkipWhite();
-                _tokenizer.Expect('{');
+                _tokenizer.Expect(ScriptTokenType.RParen);
+                _tokenizer.Expect(ScriptTokenType.LBrace);
                 var accumulated = expr.Trim();
                 _conditions.Push(accumulated);
-                _tokenizer.SkipWhite();
-                while (_tokenizer.SkipWhite() && !_tokenizer.StartsWith("}"))
+                while (_tokenizer.PeekToken().Type != ScriptTokenType.RBrace &&
+                       _tokenizer.PeekToken().Type != ScriptTokenType.Eof)
                 {
-                    if (_tokenizer.StartsWith("if"))
+                    if (_tokenizer.PeekToken().Type == ScriptTokenType.If)
                     {
                         ParseIfStatement(pe);
                     }
-                    else if (_tokenizer.StartsWith("act"))
+                    else if (_tokenizer.PeekToken().Type == ScriptTokenType.Act)
                     {
                         AddActions(pe, new ActionParser(_tokenizer).Parse());
                     }
@@ -112,23 +114,20 @@ namespace RuntimeScripting
                     }
                 }
 
-                _tokenizer.Expect('}');
+                _tokenizer.Expect(ScriptTokenType.RBrace);
                 _conditions.Pop();
-                _tokenizer.SkipWhite();
 
-                while (_tokenizer.StartsWith("else"))
+                while (_tokenizer.PeekToken().Type == ScriptTokenType.Else)
                 {
-                    _tokenizer.ExpectString("else");
-                    _tokenizer.SkipWhite();
+                    _tokenizer.Expect(ScriptTokenType.Else);
                     var hasElseIf = false;
-                    if (_tokenizer.StartsWith("if"))
+                    if (_tokenizer.PeekToken().Type == ScriptTokenType.If)
                     {
                         hasElseIf = true;
-                        _tokenizer.ExpectString("if");
-                        _tokenizer.SkipWhite();
-                        _tokenizer.Expect('(');
+                        _tokenizer.Expect(ScriptTokenType.If);
+                        _tokenizer.Expect(ScriptTokenType.LParen);
                         var cond = _tokenizer.ReadEnclosed('(', ')');
-                        _tokenizer.Expect(')');
+                        _tokenizer.Expect(ScriptTokenType.RParen);
                         var trimmed = cond.Trim();
                         _conditions.Push($"!({accumulated}) && ({trimmed})");
                         accumulated = $"({accumulated}) || ({trimmed})";
@@ -138,16 +137,15 @@ namespace RuntimeScripting
                         _conditions.Push($"!({accumulated})");
                     }
 
-                    _tokenizer.SkipWhite();
-                    _tokenizer.Expect('{');
-                    _tokenizer.SkipWhite();
-                    while (_tokenizer.SkipWhite() && !_tokenizer.StartsWith("}"))
+                    _tokenizer.Expect(ScriptTokenType.LBrace);
+                    while (_tokenizer.PeekToken().Type != ScriptTokenType.RBrace &&
+                           _tokenizer.PeekToken().Type != ScriptTokenType.Eof)
                     {
-                        if (_tokenizer.StartsWith("if"))
+                        if (_tokenizer.PeekToken().Type == ScriptTokenType.If)
                         {
                             ParseIfStatement(pe);
                         }
-                        else if (_tokenizer.StartsWith("act"))
+                        else if (_tokenizer.PeekToken().Type == ScriptTokenType.Act)
                         {
                             AddActions(pe, new ActionParser(_tokenizer).Parse());
                         }
@@ -157,9 +155,8 @@ namespace RuntimeScripting
                         }
                     }
 
-                    _tokenizer.Expect('}');
+                    _tokenizer.Expect(ScriptTokenType.RBrace);
                     _conditions.Pop();
-                    _tokenizer.SkipWhite();
 
                     if (!hasElseIf)
                         break;
