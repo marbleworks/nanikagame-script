@@ -29,38 +29,38 @@ namespace RuntimeScripting
                 }
 
                 SkipWhite();
-                if (Index >= Text.Length) return new ScriptToken(ScriptTokenType.Eof, string.Empty);
+                if (IsAtEnd) return new ScriptToken(ScriptTokenType.Eof, string.Empty);
 
-                var c = Text[Index];
+                var c = Current;
 
                 switch (c)
                 {
                     case '[':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.LBracket, "[");
                     case ']':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.RBracket, "]");
                     case '(':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.LParen, "(");
                     case ')':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.RParen, ")");
                     case '{':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.LBrace, "{");
                     case '}':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.RBrace, "}");
                     case ',':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.Comma, ",");
                     case ';':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.Semicolon, ";");
                     case '=':
-                        Index++;
+                        Advance();
                         return new ScriptToken(ScriptTokenType.Assign, "=");
                     case '#':
                         SkipLine();
@@ -70,9 +70,9 @@ namespace RuntimeScripting
                         return ReadString();
                 }
 
-                if (char.IsDigit(c) || (c == '.' && Index + 1 < Text.Length && char.IsDigit(Text[Index + 1]))) return ReadNumber();
+                if (char.IsDigit(c) || (c == '.' && PeekDigit())) return ReadNumber();
 
-                if (char.IsLetter(c) || c == '_' || c == '@' || c == '#') return ReadIdentifier();
+                if (char.IsLetter(c) || IsIdentifierStart(c)) return ReadIdentifier();
 
                 throw new InvalidOperationException($"Invalid character '{c}' at position {Index}");
             }
@@ -100,7 +100,7 @@ namespace RuntimeScripting
         /// <summary>
         /// Gets the current character or null character if at end of text.
         /// </summary>
-        public char Peek() => Index >= Text.Length ? '\0' : Text[Index];
+        public char Peek() => Current;
 
         /// <summary>
         /// Skips whitespace characters and returns true if not at end.
@@ -108,7 +108,7 @@ namespace RuntimeScripting
         public bool SkipWhite()
         {
             SkipWhitespace();
-            return Index < Text.Length;
+            return !IsAtEnd;
         }
 
         /// <summary>
@@ -205,9 +205,9 @@ namespace RuntimeScripting
         public void Expect(char c)
         {
             SkipWhite();
-            if (Index >= Text.Length || Text[Index] != c)
+            if (IsAtEnd || Current != c)
                 throw new Exception($"Expected '{c}' at {Index}");
-            Index++;
+            Advance();
         }
 
         /// <summary>
@@ -256,14 +256,7 @@ namespace RuntimeScripting
 
         private ScriptToken ReadIdentifier()
         {
-            var start = Index;
-            while (Index < Text.Length && (char.IsLetterOrDigit(Text[Index]) || Text[Index] == '_' ||
-                                           Text[Index] == '@' || Text[Index] == '#'))
-            {
-                Index++;
-            }
-
-            var ident = Text.Substring(start, Index - start);
+            var ident = ReadIdentifierLiteral();
             return ident switch
             {
                 "if" => new ScriptToken(ScriptTokenType.If, ident),

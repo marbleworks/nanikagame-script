@@ -8,6 +8,21 @@ namespace RuntimeScripting
         protected readonly string Text;
         protected int Index;
 
+        /// <summary>
+        /// Gets a value indicating whether the tokenizer has consumed all text.
+        /// </summary>
+        protected bool IsAtEnd => Index >= Text.Length;
+
+        /// <summary>
+        /// Gets the current character or <c>'\0'</c> if at end of text.
+        /// </summary>
+        protected char Current => IsAtEnd ? '\0' : Text[Index];
+
+        /// <summary>
+        /// Advances one character and returns it, or <c>'\0'</c> if at end.
+        /// </summary>
+        protected char Advance() => IsAtEnd ? '\0' : Text[Index++];
+
         protected TokenizerBase(string text)
         {
             Text = text ?? string.Empty;
@@ -109,6 +124,21 @@ namespace RuntimeScripting
         /// Determines if the character can be part of an identifier.
         /// </summary>
         protected virtual bool IsIdentifierPart(char ch) => IsIdentifierStart(ch) || char.IsDigit(ch);
+
+        /// <summary>
+        /// Reads an identifier starting at the current index.
+        /// </summary>
+        /// <remarks>The first character must already satisfy <see cref="IsIdentifierStart"/>.</remarks>
+        protected string ReadIdentifierLiteral()
+        {
+            var start = Index;
+            Advance();
+            while (!IsAtEnd && IsIdentifierPart(Current))
+            {
+                Advance();
+            }
+            return Text.Substring(start, Index - start);
+        }
     }
 }
 

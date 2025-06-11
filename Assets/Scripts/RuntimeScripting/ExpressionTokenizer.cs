@@ -15,12 +15,12 @@ namespace RuntimeScripting
         {
             SkipWhitespace();
 
-            if (Index >= Text.Length)
+            if (IsAtEnd)
             {
                 return new ExprToken(ExprTokenType.Eof, string.Empty);
             }
 
-            var ch = Text[Index];
+            var ch = Current;
             return ch switch
             {
                 '+' => ReturnToken(ExprTokenType.Plus, "+"),
@@ -39,7 +39,7 @@ namespace RuntimeScripting
 
         private ExprToken ReturnToken(ExprTokenType type, string value)
         {
-            Index++;
+            Advance();
             return new ExprToken(type, value);
         }
 
@@ -57,13 +57,8 @@ namespace RuntimeScripting
 
         private ExprToken ReadIdentifier()
         {
-            var start = Index;
-            while (Index < Text.Length && (char.IsLetterOrDigit(Text[Index]) || IsIdentifierPart(Text[Index])))
-            {
-                Index++;
-            }
-
-            return new ExprToken(ExprTokenType.Identifier, Text[start..Index]);
+            var ident = ReadIdentifierLiteral();
+            return new ExprToken(ExprTokenType.Identifier, ident);
         }
     }
 }
