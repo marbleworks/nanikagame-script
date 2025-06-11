@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace RuntimeScripting
@@ -101,6 +102,35 @@ namespace RuntimeScripting
             {
                 ExecuteActions(evt.Actions);
             }
+        }
+
+        public void ExecuteEasyScript(string easyScript)
+        {
+            ExecuteString(FormatAction(easyScript));
+        }
+
+        private static string FormatAction(string input)
+        {
+            var parts = input.Split(':');
+
+            var actBody  = parts.Length > 0 ? parts[0] : string.Empty;
+            var interval = parts.Length > 1 ? parts[1] : string.Empty;
+            var period   = parts.Length > 2 ? parts[2] : string.Empty;
+            var maxCount = parts.Length > 3 ? parts[3] : string.Empty;
+
+            var sb = new StringBuilder();
+            sb.Append($"act {{ {actBody} }} mod {{ ");
+
+            if (!string.IsNullOrEmpty(interval))
+                sb.Append($"interval = {interval}, ");
+            if (!string.IsNullOrEmpty(period))
+                sb.Append($"period = {period}, ");
+            if (!string.IsNullOrEmpty(maxCount))
+                sb.Append($"maxCount = {maxCount}");
+
+            sb.Append(" };");
+
+            return sb.ToString();
         }
 
         private void ExecuteActions(List<ParsedAction> actions)
