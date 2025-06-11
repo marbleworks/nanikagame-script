@@ -28,7 +28,8 @@ namespace RuntimeScripting
         /// Loads all script files from a Resources subfolder and merges their events.
         /// </summary>
         /// <param name="folder">The subfolder under Resources containing TextAsset scripts.</param>
-        public void Load(string folder)
+        /// <param name="mode">How to merge the loaded events with existing ones.</param>
+        public void Load(string folder, ScriptLoadMode mode = ScriptLoadMode.FullReplace)
         {
             var assets = Resources.LoadAll<TextAsset>(folder);
             var loadedEvents = new Dictionary<string, ParsedEvent>();
@@ -45,31 +46,33 @@ namespace RuntimeScripting
                 }
             }
 
-            MergeEvents(loadedEvents);
+            MergeEvents(loadedEvents, mode);
         }
 
         /// <summary>
         /// Loads a single script file from Resources and merges its events.
         /// </summary>
         /// <param name="path">Resource path of the script (without file extension).</param>
-        public void LoadFile(string path)
+        /// <param name="mode">How to merge the loaded events with existing ones.</param>
+        public void LoadFile(string path, ScriptLoadMode mode = ScriptLoadMode.FullReplace)
         {
             var resourcePath = path.EndsWith(".txt") ? path[..^4] : path;
             var asset = Resources.Load<TextAsset>(resourcePath);
             if (asset == null) return;
 
             var parsed = TextScriptParser.ParseString(asset.text);
-            MergeEvents(parsed);
+            MergeEvents(parsed, mode);
         }
 
         /// <summary>
         /// Loads script events from a raw DSL string and merges them.
         /// </summary>
         /// <param name="script">The DSL script content as a string.</param>
-        public void LoadFromString(string script)
+        /// <param name="mode">How to merge the loaded events with existing ones.</param>
+        public void LoadFromString(string script, ScriptLoadMode mode = ScriptLoadMode.FullReplace)
         {
             var parsed = TextScriptParser.ParseString(script);
-            MergeEvents(parsed);
+            MergeEvents(parsed, mode);
         }
 
         /// <summary>
@@ -111,15 +114,36 @@ namespace RuntimeScripting
         /// Merges the given events into the internal event dictionary.
         /// </summary>
         /// <param name="loaded">A dictionary of event names to ParsedEvent objects.</param>
-        private void MergeEvents(Dictionary<string, ParsedEvent> loaded)
+        /// <param name="mode">Merge behavior for existing events.</param>
+        private void MergeEvents(Dictionary<string, ParsedEvent> loaded, ScriptLoadMode mode)
         {
-            _events.Clear();
+            if (mode == ScriptLoadMode.FullReplace)
+            {
+                _events.Clear();
+            }
+
             foreach (var kvp in loaded)
             {
                 if (_events.TryGetValue(kvp.Key, out var existing))
-                    existing.Actions.AddRange(kvp.Value.Actions);
+                {
+                    switch (mode)
+                    {
+                        case ScriptLoadMode.Overwrite:
+                            _events[kvp.Key] = kvp.Value;
+                            break;
+                        case ScriptLoadMode.Append:
+                            existing.Actions.AddRange(kvp.Value.Actions);
+                            break;
+                        case ScriptLoadMode.FullReplace:
+                            // _events was cleared, so just add
+                            _events.Add(kvp.Key, kvp.Value);
+                            break;
+                    }
+                }
                 else
+                {
                     _events.Add(kvp.Key, kvp.Value);
+                }
             }
         }
     }
