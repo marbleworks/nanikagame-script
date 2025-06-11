@@ -61,31 +61,31 @@ namespace RuntimeScripting
             return new ExprToken(ExprTokenType.Identifier, ident);
         }
     }
-}
 
-internal enum ExprTokenType
-{
-    Eof,
-    Number,
-    Identifier,
-    String,
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    LParen,
-    RParen,
-    Comma
-}
-
-internal readonly struct ExprToken
-{
-    public ExprTokenType Type { get; }
-    public string Value { get; }
-
-    public ExprToken(ExprTokenType type, string value)
+    internal enum ExprTokenType
     {
-        Type = type;
-        Value = value;
+        Eof,
+        Number,
+        Identifier,
+        String,
+        Plus,
+        Minus,
+        Star,
+        Slash,
+        LParen,
+        RParen,
+        Comma
+    }
+
+    internal readonly struct ExprToken
+    {
+        public ExprTokenType Type { get; }
+        public string Value { get; }
+
+        public ExprToken(ExprTokenType type, string value)
+        {
+            Type = type;
+            Value = value;
+        }
     }
 }
