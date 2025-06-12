@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace RuntimeScripting
 {
@@ -114,7 +115,7 @@ namespace RuntimeScripting
                             continue;
                         }
 
-                        sb.Append(token.Value);
+                        AppendToken(sb, token);
                         token = tokenizer.Next();
                     }
 
@@ -164,7 +165,7 @@ namespace RuntimeScripting
                     }
                     else
                     {
-                        sb.Append(token.Value);
+                        AppendToken(sb, token);
                     }
 
                     token = tokenizer.Next();
@@ -199,7 +200,7 @@ namespace RuntimeScripting
                     else if (token.Type == ActionTokenType.RParen)
                         depth--;
 
-                    sb.Append(token.Value);
+                    AppendToken(sb, token);
                 }
 
                 token = tokenizer.Next();
@@ -237,7 +238,7 @@ namespace RuntimeScripting
                     else if (token.Type == ActionTokenType.RParen)
                         depth--;
 
-                    sb.Append(token.Value);
+                    AppendToken(sb, token);
                     token = tokenizer.Next();
                 }
 
@@ -248,6 +249,18 @@ namespace RuntimeScripting
             }
 
             return dict;
+        }
+
+        private static void AppendToken(StringBuilder sb, ActionToken token)
+        {
+            if (token.Type == ActionTokenType.String)
+            {
+                sb.Append('"').Append(token.Value).Append('"');
+            }
+            else
+            {
+                sb.Append(token.Value);
+            }
         }
     }
 }
