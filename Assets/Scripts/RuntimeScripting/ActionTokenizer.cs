@@ -27,6 +27,10 @@ namespace RuntimeScripting
                 case ')': Advance(); return new ActionToken(ActionTokenType.RParen, ")");
                 case ',': Advance(); return new ActionToken(ActionTokenType.Comma, ",");
                 case '=': Advance(); return new ActionToken(ActionTokenType.Assign, "=");
+                case '+': Advance(); return new ActionToken(ActionTokenType.Plus, "+");
+                case '-': Advance(); return new ActionToken(ActionTokenType.Minus, "-");
+                case '*': Advance(); return new ActionToken(ActionTokenType.Star, "*");
+                case '/': Advance(); return new ActionToken(ActionTokenType.Slash, "/");
                 case '"':
                 case '\'':
                     return ReadString();
@@ -73,7 +77,11 @@ namespace RuntimeScripting
         LParen,
         RParen,
         Comma,
-        Assign
+        Assign,
+        Plus,
+        Minus,
+        Star,
+        Slash
     }
 
     internal readonly struct ActionToken
