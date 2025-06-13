@@ -1,5 +1,7 @@
 # AI Contribution Guide
 
+Please do not modify README.md. Instead, record your changes here in the chat.
+
 ## Purpose
 This document outlines the expectations for AI agents contributing to the Data-Driven Script Engine. It describes the project layout, conventions, and the DSL syntax (including new modifiers) that must be followed when creating or modifying code or text scripts.
 
