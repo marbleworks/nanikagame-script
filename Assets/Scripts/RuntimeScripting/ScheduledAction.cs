@@ -21,8 +21,8 @@ namespace RuntimeScripting
         {
             _parsed = parsed ?? throw new ArgumentNullException(nameof(parsed));
             _controller = controller ?? throw new ArgumentNullException(nameof(controller));
-            _period = GetEvaluatedValue(parsed.Period, parsed.PeriodFuncRaw);
-            _interval = GetEvaluatedValue(parsed.Interval, parsed.IntervalFuncRaw);
+            _period = GetEvaluatedValue(parsed.Period, parsed.PeriodFuncRaw, controller.GameLogic);
+            _interval = GetEvaluatedValue(parsed.Interval, parsed.IntervalFuncRaw, controller.GameLogic);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace RuntimeScripting
                 }
 
                 // Re-evaluate interval if dynamic
-                _interval = GetEvaluatedValue(_parsed.Interval, _parsed.IntervalFuncRaw);
+                _interval = GetEvaluatedValue(_parsed.Interval, _parsed.IntervalFuncRaw, _controller.GameLogic);
                 nextExecution += _interval;
             }
         }
@@ -77,14 +77,14 @@ namespace RuntimeScripting
         /// <summary>
         /// Evaluates a base value or an expression string to a float.
         /// </summary>
-        private static float GetEvaluatedValue(float baseValue, string expressionRaw)
+        private static float GetEvaluatedValue(float baseValue, string expressionRaw, IGameLogic gameLogic)
         {
             if (string.IsNullOrEmpty(expressionRaw))
                 return baseValue;
 
             try
             {
-                return ExpressionEvaluator.EvaluateFloat(expressionRaw, null);
+                return ExpressionEvaluator.EvaluateFloat(expressionRaw, gameLogic);
             }
             catch (Exception ex)
             {
