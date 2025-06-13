@@ -37,6 +37,7 @@ namespace RuntimeScripting
 
             foreach (var asset in assets)
             {
+                if (asset == null || string.IsNullOrWhiteSpace(asset.text)) continue;
                 var parsed = TextScriptParser.ParseString(asset.text);
                 foreach (var kvp in parsed)
                 {
@@ -60,6 +61,9 @@ namespace RuntimeScripting
             var resourcePath = path.EndsWith(".txt") ? path[..^4] : path;
             var asset = Resources.Load<TextAsset>(resourcePath);
             if (asset == null) return;
+            
+            var script = asset.text;
+            if (string.IsNullOrWhiteSpace(script)) return;
 
             var parsed = TextScriptParser.ParseString(asset.text);
             MergeEvents(parsed, mode);
@@ -72,6 +76,8 @@ namespace RuntimeScripting
         /// <param name="mode">How to merge the loaded events with existing ones.</param>
         public void LoadFromString(string script, ScriptLoadMode mode = ScriptLoadMode.FullReplace)
         {
+            if (string.IsNullOrWhiteSpace(script)) return;
+            
             var parsed = TextScriptParser.ParseString(script);
             MergeEvents(parsed, mode);
         }

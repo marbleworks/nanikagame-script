@@ -9,6 +9,24 @@ public class Test : MonoBehaviour
     private void Start()
     {
         _gameLogic = new GameLogic();
+        
+        // register functions that return int
+        _gameLogic.RegisterFunction(nameof(HpMin), (logic, parameter) => HpMin());
+        _gameLogic.RegisterFunction(nameof(ComboCount), (logic, parameter) => ComboCount());
+        _gameLogic.RegisterFunction(nameof(Shield), (logic, parameter) => Shield());
+        _gameLogic.RegisterFunction(nameof(NanikaCount), (logic, parameter) => NanikaCount(parameter.Args[0]));
+        _gameLogic.RegisterFunction(nameof(ResourceCount), (logic, parameter) => ResourceCount(parameter.Args[0]));
+
+        // register a function that returns bool
+        _gameLogic.RegisterFunction(nameof(UseResource), (logic, parameter) => UseResource(
+            parameter.Args[0],
+            logic.ParseIntArg(parameter, 1)
+        ));
+
+        // register functions that return float
+        _gameLogic.RegisterFunction(nameof(Interval), (logic, parameter) => Interval(logic.ParseFloatArg(parameter, 0)));
+        
+        // register actions
         _gameLogic.RegisterAction(nameof(Attack), (logic, parameter) => { Attack(logic.ParseIntArg(parameter, 0)); });
         _gameLogic.RegisterAction(nameof(AddPlayerEffect),
             (logic, parameter) =>
@@ -54,22 +72,6 @@ public class Test : MonoBehaviour
                 logic.ParseIntArg(parameter, 2)
             );
         });
-
-        // register functions that return int
-        _gameLogic.RegisterFunction(nameof(HpMin), (logic, parameter) => HpMin());
-        _gameLogic.RegisterFunction(nameof(ComboCount), (logic, parameter) => ComboCount());
-        _gameLogic.RegisterFunction(nameof(Shield), (logic, parameter) => Shield());
-        _gameLogic.RegisterFunction(nameof(NanikaCount), (logic, parameter) => NanikaCount(parameter.Args[0]));
-        _gameLogic.RegisterFunction(nameof(ResourceCount), (logic, parameter) => ResourceCount(parameter.Args[0]));
-
-        // register a function that returns bool
-        _gameLogic.RegisterFunction(nameof(UseResource), (logic, parameter) => UseResource(
-            parameter.Args[0],
-            logic.ParseIntArg(parameter, 1)
-        ));
-
-        // register functions that return float
-        _gameLogic.RegisterFunction(nameof(Interval), (logic, parameter) => Interval(logic.ParseFloatArg(parameter, 0)));
 
         _controller = gameObject.GetComponent<RuntimeTextScriptController>();
         _controller.Initialize(_gameLogic);
