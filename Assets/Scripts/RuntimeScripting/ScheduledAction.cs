@@ -11,13 +11,13 @@ namespace RuntimeScripting
     public class ScheduledAction
     {
         private readonly ParsedAction _parsed;
-        private readonly RuntimeTextScriptController _controller;
+        private readonly ScriptController _controller;
         private readonly float _period;
         private float _interval;
         private float _elapsed;
         private int _executedCount;
 
-        public ScheduledAction(ParsedAction parsed, RuntimeTextScriptController controller)
+        public ScheduledAction(ParsedAction parsed, ScriptController controller)
         {
             _parsed = parsed ?? throw new ArgumentNullException(nameof(parsed));
             _controller = controller ?? throw new ArgumentNullException(nameof(controller));

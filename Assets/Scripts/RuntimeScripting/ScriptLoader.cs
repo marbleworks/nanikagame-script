@@ -1,29 +1,43 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace RuntimeScripting
 {
     /// <summary>
-    /// Loads script files from the Resources folder and triggers events.
+    /// Loads DSL scripts from Resources or raw strings and stores their events.
     /// </summary>
-    public class RuntimeTextScriptController : MonoBehaviour
+    public class ScriptLoader
     {
+        private ScriptController _controller;
         private readonly Dictionary<string, ParsedEvent> _events = new();
-        private readonly List<ScheduledAction> _scheduled = new();
-        private readonly List<Coroutine> _running = new();
 
         /// <summary>
-        /// Gets the reference to the GameLogic instance.
+        /// Creates a new loader with an optional script controller reference.
         /// </summary>
-        public IGameLogic GameLogic { get; private set; }
+        /// <param name="controller">Controller used to execute events.</param>
+        public ScriptLoader(ScriptController controller = null)
+            => _controller = controller;
 
         /// <summary>
-        /// Initializes the controller with the specified GameLogic.
+        /// Gets or sets the controller used for execution.
         /// </summary>
-        /// <param name="gameLogic">The GameLogic instance to use.</param>
-        public void Initialize(IGameLogic gameLogic) => GameLogic = gameLogic;
+        public ScriptController Controller
+        {
+            get => _controller;
+            set => _controller = value;
+        }
+
+        /// <summary>
+        /// Registers the script controller after construction.
+        /// </summary>
+        /// <param name="controller">Controller used to execute events.</param>
+        public void Initialize(ScriptController controller)
+            => _controller = controller;
+
+        /// <summary>
+        /// Gets the loaded events by name.
+        /// </summary>
+        public IReadOnlyDictionary<string, ParsedEvent> Events => _events;
 
         /// <summary>
         /// Loads all script files from a Resources subfolder and merges their events.
@@ -61,7 +75,7 @@ namespace RuntimeScripting
             var resourcePath = path.EndsWith(".txt") ? path[..^4] : path;
             var asset = Resources.Load<TextAsset>(resourcePath);
             if (asset == null) return;
-            
+
             var script = asset.text;
             if (string.IsNullOrWhiteSpace(script)) return;
 
@@ -77,102 +91,45 @@ namespace RuntimeScripting
         public void LoadFromString(string script, ScriptLoadMode mode = ScriptLoadMode.FullReplace)
         {
             if (string.IsNullOrWhiteSpace(script)) return;
-            
+
             var parsed = TextScriptParser.ParseString(script);
             MergeEvents(parsed, mode);
         }
 
         /// <summary>
-        /// Triggers the specified event, executing or scheduling its actions.
+        /// Attempts to get a parsed event by name.
         /// </summary>
-        /// <param name="eventName">The name of the event to trigger.</param>
+        /// <param name="eventName">The event name.</param>
+        /// <param name="parsedEvent">The parsed event if found.</param>
+        /// <returns>True if the event exists.</returns>
+        public bool TryGetEvent(string eventName, out ParsedEvent parsedEvent)
+            => _events.TryGetValue(eventName, out parsedEvent);
+
+        /// <summary>
+        /// Triggers the specified event on the registered controller.
+        /// </summary>
+        /// <param name="eventName">Name of the event to trigger.</param>
         public void Trigger(string eventName)
         {
-            if (!_events.TryGetValue(eventName, out var parsedEvent)) return;
-
-            ExecuteActions(parsedEvent.Actions);
+            if (_controller == null) return;
+            if (_events.TryGetValue(eventName, out var parsedEvent))
+                _controller.Trigger(parsedEvent);
         }
 
         /// <summary>
-        /// Executes DSL text that contains only action statements without an event block.
+        /// Invokes <see cref="ScriptController.ExecuteString"/> on the registered controller.
         /// </summary>
-        /// <param name="script">The raw DSL text.</param>
+        /// <param name="script">DSL text containing action statements.</param>
         public void ExecuteString(string script)
-        {
-            if (string.IsNullOrWhiteSpace(script)) return;
-
-            const string tempEvent = "OnImmediate";
-            var wrapped = $"[{tempEvent}]\n" + script;
-            var parsed = TextScriptParser.ParseString(wrapped);
-            if (parsed.TryGetValue(tempEvent, out var evt))
-            {
-                ExecuteActions(evt.Actions);
-            }
-        }
-
-        public void ExecuteEasyScript(string easyScript)
-        {
-            ExecuteString(FormatAction(easyScript));
-        }
-
-        private static string FormatAction(string input)
-        {
-            var parts = input.Split(':');
-
-            var actBody  = parts.Length > 0 ? parts[0] : string.Empty;
-            var interval = parts.Length > 1 ? parts[1] : string.Empty;
-            var period   = parts.Length > 2 ? parts[2] : string.Empty;
-            var maxCount = parts.Length > 3 ? parts[3] : string.Empty;
-
-            var sb = new StringBuilder();
-            sb.Append($"act {{ {actBody} }} mod {{ ");
-
-            if (!string.IsNullOrEmpty(interval))
-                sb.Append($"interval = {interval}, ");
-            if (!string.IsNullOrEmpty(period))
-                sb.Append($"period = {period}, ");
-            if (!string.IsNullOrEmpty(maxCount))
-                sb.Append($"maxCount = {maxCount}");
-
-            sb.Append(" };");
-
-            return sb.ToString();
-        }
-
-        private void ExecuteActions(List<ParsedAction> actions)
-        {
-            foreach (var action in actions)
-            {
-                if (!string.IsNullOrEmpty(action.Condition) &&
-                    !GameLogic.EvaluateCondition(action.Condition))
-                {
-                    continue;
-                }
-
-                if (action.Interval > 0 || !string.IsNullOrEmpty(action.IntervalFuncRaw))
-                {
-                    var scheduled = new ScheduledAction(action, this);
-                    _scheduled.Add(scheduled);
-                    _running.Add(StartCoroutine(RunScheduledAction(scheduled)));
-                }
-                else
-                {
-                    GameLogic.ExecuteAction(action);
-                }
-            }
-        }
-
-        private IEnumerator RunScheduledAction(ScheduledAction scheduled)
-        {
-            yield return scheduled.ExecuteCoroutine();
-            _scheduled.Remove(scheduled);
-        }
+            => _controller?.ExecuteString(script);
 
         /// <summary>
-        /// Merges the given events into the internal event dictionary.
+        /// Invokes <see cref="ScriptController.ExecuteEasyScript"/> on the registered controller.
         /// </summary>
-        /// <param name="loaded">A dictionary of event names to ParsedEvent objects.</param>
-        /// <param name="mode">Merge behavior for existing events.</param>
+        /// <param name="easyScript">Short-form script to execute.</param>
+        public void ExecuteEasyScript(string easyScript)
+            => _controller?.ExecuteEasyScript(easyScript);
+
         private void MergeEvents(Dictionary<string, ParsedEvent> loaded, ScriptLoadMode mode)
         {
             if (mode == ScriptLoadMode.FullReplace)
@@ -193,7 +150,6 @@ namespace RuntimeScripting
                             existing.Actions.AddRange(kvp.Value.Actions);
                             break;
                         case ScriptLoadMode.FullReplace:
-                            // _events was cleared, so just add
                             _events.Add(kvp.Key, kvp.Value);
                             break;
                     }

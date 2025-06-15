@@ -3,7 +3,8 @@ using UnityEngine;
 
 public class Test : MonoBehaviour
 {
-    private RuntimeTextScriptController _controller;
+    private ScriptController _controller;
+    private ScriptLoader _loader;
     private GameLogic _gameLogic;
 
     private void Start()
@@ -73,31 +74,33 @@ public class Test : MonoBehaviour
             );
         });
 
-        _controller = gameObject.GetComponent<RuntimeTextScriptController>();
+        _controller = gameObject.GetComponent<ScriptController>();
         _controller.Initialize(_gameLogic);
-        _controller.LoadFile("ScriptFiles/test2.txt");
+
+        _loader = new ScriptLoader(_controller);
+        _loader.LoadFile("ScriptFiles/test2.txt");
     }
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.S))
         {
-            _controller.Trigger("OnSpawned");
+            _loader.Trigger("OnSpawned");
         }
-        
+
         if (Input.GetKeyDown(KeyCode.D))
         {
-            _controller.Trigger("OnDropped");
+            _loader.Trigger("OnDropped");
         }
-        
+
         if (Input.GetKeyDown(KeyCode.F))
         {
-            _controller.ExecuteString("act { AddPlayerEffect(@l, strength, 1) } mod { interval = 1 };");
+            _loader.ExecuteString("act { AddPlayerEffect(@l, strength, 1) } mod { interval = 1 };");
         }
-        
+
         if (Input.GetKeyDown(KeyCode.G))
         {
-            _controller.ExecuteEasyScript("AddPlayerEffect(@l,strength,1):1");
+            _loader.ExecuteEasyScript("AddPlayerEffect(@l,strength,1):1");
         }
 
 

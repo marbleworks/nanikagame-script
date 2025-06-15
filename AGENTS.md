@@ -69,7 +69,8 @@ AGENTS.md  ← this file
 - **IGameLogic.cs** – Interface defining how scripting interacts with game logic: executing parsed actions and evaluating conditions or functions.
 - **ParsedAction.cs** – Data model for a single script action, including timing, conditions, and repetition parameters like interval, period, while and maxCount.
 - **ParsedEvent.cs** – Container mapping an event name to a list of ParsedAction objects.
-- **RuntimeTextScriptController.cs** – Unity MonoBehaviour that loads script assets, merges events, triggers them, and manages ScheduledAction coroutines.
+- **ScriptController.cs** – Unity MonoBehaviour that executes parsed events and manages ScheduledAction coroutines.
+- **ScriptLoader.cs** – Utility for loading script files or text, storing parsed events, and triggering them through a registered ScriptController.
 - **ScheduledAction.cs** – Executes actions periodically without drift, honoring modifiers such as interval, period, while, maxCount, and canExecute.
 - **ScriptLoadMode.cs** – Enumeration controlling how newly loaded scripts merge with existing ones: FullReplace, Overwrite, or Append.
 - **ScriptTokenizer.cs** – Low-level tokenizer for the script DSL, providing methods to read tokens, peek ahead, and handle comments and whitespace. Recognizes keywords like act, mod, if and else.
